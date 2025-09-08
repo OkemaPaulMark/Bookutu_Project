@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/auth_service.dart'; // import the AuthService
+import 'services/auth_service.dart';
 import 'register_screen.dart';
 import 'main.dart';
 
@@ -67,31 +67,56 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
+      backgroundColor: Colors.white, // Consistent background color
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0), // Increased padding
           child: Column(
+            mainAxisAlignment:
+                MainAxisAlignment.center, // Center content vertically
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // App Logo or Icon (Optional, placeholder for now)
+              Icon(Icons.directions_bus, size: 80, color: Colors.blue.shade900),
               const SizedBox(height: 24),
-              const Text(
+
+              Text(
                 'Welcome Back!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900, // Matching app bar color
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 8),
+              const Text(
+                'Sign in to continue',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48), // More vertical spacing
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     TextFormField(
                       controller: _usernameController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Username',
                         hintText: 'Enter your username',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                              12), // Rounded corners for input
+                          borderSide: BorderSide.none, // Remove default border
+                        ),
+                        filled: true,
+                        fillColor:
+                            Colors.grey.shade100, // Light grey background
+                        prefixIcon:
+                            Icon(Icons.person, color: Colors.blue.shade700),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 16),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -103,25 +128,35 @@ class _SignInScreenState extends State<SignInScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20), // Adjusted spacing
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Password',
                         hintText: 'Enter your password',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        prefixIcon:
+                            Icon(Icons.lock, color: Colors.blue.shade700),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility),
+                          icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.blue.shade700),
                           onPressed: () {
                             setState(() {
                               _obscurePassword = !_obscurePassword;
                             });
                           },
                         ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 16),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -132,15 +167,19 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     const SizedBox(height: 32),
                     SizedBox(
-                      height: 50,
+                      height: 56, // Larger button height
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: Colors.blue.shade900,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(
+                                12), // Rounded button corners
                           ),
+                          elevation: 8, // Add shadow for depth
+                          shadowColor:
+                              Colors.blue.shade200, // Subtle shadow color
                         ),
                         child: _isLoading
                             ? const CircularProgressIndicator(
@@ -149,15 +188,18 @@ class _SignInScreenState extends State<SignInScreen> {
                             : const Text(
                                 'Login',
                                 style: TextStyle(
-                                    fontSize: 18, color: Colors.white),
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold),
                               ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24), // Adjusted spacing
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Don't have an account? "),
+                        Text("Don't have an account? ",
+                            style: TextStyle(color: Colors.grey.shade700)),
                         GestureDetector(
                           onTap: () {
                             Navigator.pushReplacement(
@@ -167,10 +209,11 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                             );
                           },
-                          child: const Text(
+                          child: Text(
                             "Register",
                             style: TextStyle(
-                              color: Colors.blue,
+                              color:
+                                  Colors.blue.shade700, // Consistent blue color
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline,
                             ),
