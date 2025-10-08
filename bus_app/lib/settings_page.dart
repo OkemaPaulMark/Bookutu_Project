@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bus_app/edit_profile_page.dart'; // Import the new profile page
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -8,39 +9,49 @@ class SettingsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.blue.shade900,
+        backgroundColor:
+            Colors.blue.shade900, // Revert to fixed background color
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildSectionTitle('Account Settings'),
           _buildSeparatedList([
-            _buildTile(Icons.person, 'Profile', 'Edit your profile', () {}),
-            _buildTile(Icons.lock, 'Change Password', 'Update your password', () {}),
+            _buildTile(Icons.person, 'Profile', 'Edit your profile', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const EditProfilePage()),
+              );
+            }),
+            _buildTile(
+                Icons.lock, 'Change Password', 'Update your password', () {}),
           ]),
-
           const SizedBox(height: 24),
           _buildSectionTitle('Preferences'),
           _buildSeparatedList([
-            _buildTile(Icons.notifications, 'Notifications', 'Manage notification settings', () {}),
-            _buildTile(Icons.language, 'Language', 'Change app language', () {}),
+            _buildTile(Icons.notifications, 'Notifications',
+                'Manage notification settings', () {}),
+            _buildTile(
+                Icons.language, 'Language', 'Change app language', () {}),
             ListTile(
               leading: const Icon(Icons.dark_mode),
               title: const Text('Dark Mode'),
               trailing: Switch(
-                value: true, // Replace with state management
+                value:
+                    false, // Default to false (light mode) or set to initial state
                 onChanged: (value) {},
               ),
             ),
           ]),
-
           const SizedBox(height: 24),
           _buildSectionTitle('Security & Privacy'),
           _buildSeparatedList([
-            _buildTile(Icons.privacy_tip, 'Privacy Settings', 'Manage data sharing & tracking', () {}),
-            _buildTile(Icons.security, 'App Permissions', 'Control app access to resources', () {}),
+            _buildTile(Icons.privacy_tip, 'Privacy Settings',
+                'Manage data sharing & tracking', () {}),
+            _buildTile(Icons.security, 'App Permissions',
+                'Control app access to resources', () {}),
           ]),
-
           const SizedBox(height: 24),
           _buildSectionTitle('Support'),
           _buildSeparatedList([
@@ -48,7 +59,6 @@ class SettingsPage extends StatelessWidget {
             _buildTile(Icons.feedback, 'Send Feedback', null, () {}),
             _buildTile(Icons.info, 'About', null, () {}),
           ]),
-
           const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
@@ -76,7 +86,8 @@ class SettingsPage extends StatelessWidget {
   }
 
   // Helper to build list tiles with optional subtitle
-  Widget _buildTile(IconData icon, String title, String? subtitle, VoidCallback onTap) {
+  Widget _buildTile(
+      IconData icon, String title, String? subtitle, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),

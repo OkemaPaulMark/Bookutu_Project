@@ -1,0 +1,260 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ company.name }} - Company Details - Bookutu{% endblock %}
+{% block page_title %}Company Details{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ company.name }}</h1>
+                <p class="text-gray-600 mt-1">{{ company.email }} • {{ company.phone_number }}</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'super_admin:admin_companies' %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Companies
+                </a>
+                <a href="{% url 'super_admin:edit_company' company.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-edit mr-2"></i>Edit Company
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Company Information -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Company Status Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Company Status</h3>
+                    <div class="flex items-center space-x-2">
+                        {% if company.status == 'ACTIVE' %}
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                        {% elif company.status == 'PENDING' %}
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                        {% elif company.status == 'SUSPENDED' %}
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">Suspended</span>
+                        {% else %}
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">Inactive</span>
+                        {% endif %}
+                        {% if company.verified_at %}
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">Verified</span>
+                        {% else %}
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">Unverified</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Registration Number</p>
+                        <p class="font-semibold text-gray-900">{{ company.registration_number|default:"Not provided" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Tax ID</p>
+                        <p class="font-semibold text-gray-900">{{ company.tax_id|default:"Not provided" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">License Number</p>
+                        <p class="font-semibold text-gray-900">{{ company.license_number|default:"Not provided" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company Information -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Company Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Contact Details</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <i class="fas fa-envelope text-gray-400 w-5"></i>
+                                <span class="ml-3 text-gray-700">{{ company.email }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-phone text-gray-400 w-5"></i>
+                                <span class="ml-3 text-gray-700">{{ company.phone_number }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-map-marker-alt text-gray-400 w-5"></i>
+                                <span class="ml-3 text-gray-700">{{ company.city }}, {{ company.state }}, {{ company.country }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Address</h4>
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <p class="text-gray-700">{{ company.address|default:"No address provided" }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if company.description %}
+                <div class="mt-6">
+                    <h4 class="font-medium text-gray-900 mb-3">Description</h4>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <p class="text-gray-700">{{ company.description }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Company Statistics -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Company Statistics</h3>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">{{ total_buses }}</div>
+                        <div class="text-sm text-gray-600">Total Buses</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">{{ active_buses }}</div>
+                        <div class="text-sm text-gray-600">Active Buses</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-2xl font-bold text-yellow-600">{{ total_drivers }}</div>
+                        <div class="text-sm text-gray-600">Drivers</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-2xl font-bold text-purple-600">{{ total_routes }}</div>
+                        <div class="text-sm text-gray-600">Routes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Bookings -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Bookings</h3>
+                
+                {% if recent_bookings %}
+                    <div class="space-y-3">
+                        {% for booking in recent_bookings %}
+                        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-ticket-alt text-blue-600"></i>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h4 class="font-semibold text-gray-900">{{ booking.booking_reference }}</h4>
+                                <p class="text-sm text-gray-600">{{ booking.trip.route.origin_city }} → {{ booking.trip.route.destination_city }} • {{ booking.passenger_name }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if booking.status == 'CONFIRMED' %}bg-green-100 text-green-800{% elif booking.status == 'PENDING' %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ booking.get_status_display }}
+                                </span>
+                                <p class="text-sm text-gray-600 mt-1">UGX {{ booking.total_amount|floatformat:0 }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-ticket-alt text-4xl mb-4"></i>
+                        <p>No recent bookings found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                
+                <div class="space-y-3">
+                    <a href="{% url 'super_admin:edit_company' company.id %}" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center block">
+                        <i class="fas fa-edit mr-2"></i>Edit Company
+                    </a>
+                    
+                    {% if company.status == 'ACTIVE' %}
+                    <a href="{% url 'super_admin:toggle_company_status' company.id %}" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-center block">
+                        <i class="fas fa-pause mr-2"></i>Deactivate Company
+                    </a>
+                    {% else %}
+                    <a href="{% url 'super_admin:toggle_company_status' company.id %}" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center block">
+                        <i class="fas fa-play mr-2"></i>Activate Company
+                    </a>
+                    {% endif %}
+                    
+                    {% if company.verified_at %}
+                    <a href="{% url 'super_admin:toggle_company_verification' company.id %}" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-center block">
+                        <i class="fas fa-times mr-2"></i>Unverify Company
+                    </a>
+                    {% else %}
+                    <a href="{% url 'super_admin:toggle_company_verification' company.id %}" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center block">
+                        <i class="fas fa-check mr-2"></i>Verify Company
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Company Performance -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+                
+                <div class="space-y-4">
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">{{ total_bookings }}</div>
+                        <div class="text-sm text-gray-600">Total Bookings</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">UGX {{ total_revenue|floatformat:0 }}</div>
+                        <div class="text-sm text-gray-600">Total Revenue</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company Details -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Company Details</h3>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Company Name</span>
+                        <span class="font-medium">{{ company.name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Email</span>
+                        <span class="font-medium">{{ company.email }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Phone</span>
+                        <span class="font-medium">{{ company.phone_number }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Location</span>
+                        <span class="font-medium">{{ company.city }}, {{ company.state }}, {{ company.country }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Joined</span>
+                        <span class="font-medium">{{ company.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Status</span>
+                        <span class="font-medium {% if company.status == 'ACTIVE' %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ company.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Verified</span>
+                        <span class="font-medium {% if company.verified_at %}text-green-600{% else %}text-yellow-600{% endif %}">
+                            {% if company.verified_at %}Yes{% else %}No{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

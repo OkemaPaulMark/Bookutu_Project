@@ -1,0 +1,89 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Register Company - Bookutu{% endblock %}
+{% block page_title %}Register Company{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            <h2 class="text-xl font-semibold">Company Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+                    {{ form.company_name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Registration Number *</label>
+                    {{ form.registration_number }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    {{ form.email }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                    {{ form.phone_number }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+                    {{ form.address }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                    {{ form.city }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">State *</label>
+                    {{ form.state }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Country *</label>
+                    {{ form.country }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">License Number *</label>
+                    {{ form.license_number }}
+                </div>
+            </div>
+
+            <h2 class="text-xl font-semibold">Staff Admin Account</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                    {{ form.staff_first_name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                    {{ form.staff_last_name }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Staff Email *</label>
+                    {{ form.staff_email }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                    {{ form.password1 }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+                    {{ form.password2 }}
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="text-red-600 text-sm">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="flex items-center justify-end space-x-4">
+                <a href="/accounts/login/" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Register</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+
