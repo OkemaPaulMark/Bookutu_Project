@@ -3,7 +3,10 @@ from .models import Feedback
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.validators import UniqueValidator
-from .models import  Bus, BusCompany, Trip, Route, Seat, Booking, Payment, SeatBooking
+from .models import Bus, BusCompany, Trip, Route, Booking, Feedback, BusModel
+
+
+
 
 class FeedbackSerializer(serializers.ModelSerializer):
     class Meta:

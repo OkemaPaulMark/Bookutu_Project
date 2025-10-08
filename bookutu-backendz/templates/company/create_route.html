@@ -1,0 +1,182 @@
+{% extends 'company/base.html' %}
+
+{% block title %}Create New Route - Bookutu{% endblock %}
+{% block page_title %}Create New Route{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Create New Route</h1>
+                <p class="text-gray-600 mt-1">Add a new route to your company's network</p>
+            </div>
+            <a href="{% url 'company:routes' %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Routes
+            </a>
+        </div>
+    </div>
+
+    <!-- Route Form -->
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Route Information -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Route Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-route mr-2"></i>Route Name *
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.origin_city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-marker-alt mr-2"></i>Origin City *
+                        </label>
+                        {{ form.origin_city }}
+                        {% if form.origin_city.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.origin_city.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.destination_city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-marker mr-2"></i>Destination City *
+                        </label>
+                        {{ form.destination_city }}
+                        {% if form.destination_city.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.destination_city.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.origin_terminal.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-building mr-2"></i>Origin Terminal *
+                        </label>
+                        {{ form.origin_terminal }}
+                        {% if form.origin_terminal.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.origin_terminal.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.destination_terminal.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-building mr-2"></i>Destination Terminal *
+                        </label>
+                        {{ form.destination_terminal }}
+                        {% if form.destination_terminal.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.destination_terminal.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Details -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Route Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="{{ form.distance_km.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-road mr-2"></i>Distance (km) *
+                        </label>
+                        {{ form.distance_km }}
+                        {% if form.distance_km.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.distance_km.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.estimated_duration_hours.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-clock mr-2"></i>Duration (hours) *
+                        </label>
+                        {{ form.estimated_duration_hours }}
+                        {% if form.estimated_duration_hours.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.estimated_duration_hours.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.base_fare.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave mr-2"></i>Base Fare (UGX) *
+                        </label>
+                        {{ form.base_fare }}
+                        {% if form.base_fare.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.base_fare.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intermediate Stops -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Intermediate Stops</h3>
+                <div>
+                    <label for="{{ form.intermediate_stops.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-map-pin mr-2"></i>Stops (JSON Format)
+                    </label>
+                    {{ form.intermediate_stops }}
+                    {% if form.intermediate_stops.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.intermediate_stops.errors.0 }}</div>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-1">
+                        Enter stops as JSON: [{"city": "Lira", "duration_minutes": 30}, {"city": "Gulu", "duration_minutes": 45}]
+                    </p>
+                </div>
+            </div>
+
+            <!-- Route Status -->
+            <div class="pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Route Status</h3>
+                <div class="flex items-center">
+                    {{ form.is_active }}
+                    <label for="{{ form.is_active.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                        <i class="fas fa-toggle-on mr-1"></i>Active Route
+                    </label>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Active routes can be used for trip scheduling</p>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-end space-x-4">
+                <a href="{% url 'company:routes' %}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-save mr-2"></i>Create Route
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-format intermediate stops as user types
+    const stopsField = document.getElementById('{{ form.intermediate_stops.id_for_label }}');
+    
+    if (stopsField) {
+        stopsField.addEventListener('blur', function() {
+            try {
+                const value = this.value.trim();
+                if (value) {
+                    const parsed = JSON.parse(value);
+                    this.value = JSON.stringify(parsed, null, 2);
+                }
+            } catch (e) {
+                // Invalid JSON, let user fix it
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

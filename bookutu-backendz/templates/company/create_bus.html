@@ -1,0 +1,196 @@
+{% extends 'company/base.html' %}
+
+{% block title %}Add New Bus - Bookutu{% endblock %}
+{% block page_title %}Add New Bus{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Add New Bus</h1>
+                <p class="text-gray-600 mt-1">Add a new bus to your fleet with detailed specifications</p>
+            </div>
+            <a href="{% url 'company:fleet' %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Fleet
+            </a>
+        </div>
+    </div>
+
+    <!-- Bus Form -->
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.license_plate.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-id-card mr-2"></i>License Plate *
+                        </label>
+                        {{ form.license_plate }}
+                        {% if form.license_plate.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.license_plate.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.bus_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-star mr-2"></i>Bus Type *
+                        </label>
+                        {{ form.bus_type }}
+                        {% if form.bus_type.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.bus_type.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.make.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-industry mr-2"></i>Make *
+                        </label>
+                        {{ form.make }}
+                        {% if form.make.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.make.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.model.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-car mr-2"></i>Model *
+                        </label>
+                        {{ form.model }}
+                        {% if form.model.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.model.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.year.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar mr-2"></i>Year *
+                        </label>
+                        {{ form.year }}
+                        {% if form.year.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.year.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.total_seats.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-users mr-2"></i>Total Seats *
+                        </label>
+                        {{ form.total_seats }}
+                        {% if form.total_seats.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.total_seats.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Bus Features</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="flex items-center">
+                        {{ form.has_ac }}
+                        <label for="{{ form.has_ac.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                            <i class="fas fa-snowflake mr-1"></i>Air Conditioning
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        {{ form.has_wifi }}
+                        <label for="{{ form.has_wifi.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                            <i class="fas fa-wifi mr-1"></i>WiFi
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        {{ form.has_charging_ports }}
+                        <label for="{{ form.has_charging_ports.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                            <i class="fas fa-plug mr-1"></i>Charging Ports
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        {{ form.has_entertainment }}
+                        <label for="{{ form.has_entertainment.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                            <i class="fas fa-tv mr-1"></i>Entertainment
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        {{ form.has_restroom }}
+                        <label for="{{ form.has_restroom.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                            <i class="fas fa-toilet mr-1"></i>Restroom
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status and Maintenance -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Status & Maintenance</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-info-circle mr-2"></i>Status *
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.status.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.last_maintenance.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-wrench mr-2"></i>Last Maintenance
+                        </label>
+                        {{ form.last_maintenance }}
+                        {% if form.last_maintenance.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.last_maintenance.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.next_maintenance.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-check mr-2"></i>Next Maintenance
+                        </label>
+                        {{ form.next_maintenance }}
+                        {% if form.next_maintenance.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.next_maintenance.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bus Image -->
+            <div class="pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Bus Image</h3>
+                <div>
+                    <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-image mr-2"></i>Upload Bus Image
+                    </label>
+                    {{ form.image }}
+                    {% if form.image.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.image.errors.0 }}</div>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-1">Upload a clear image of the bus (JPG, PNG, max 5MB)</p>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-end space-x-4">
+                <a href="{% url 'company:fleet' %}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-save mr-2"></i>Add Bus
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

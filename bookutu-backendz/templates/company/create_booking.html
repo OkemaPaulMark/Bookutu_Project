@@ -1,0 +1,190 @@
+{% extends 'company/base.html' %}
+
+{% block title %}Create Booking - Bookutu{% endblock %}
+{% block page_title %}Create New Booking{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Create New Booking</h1>
+                <p class="text-gray-600 mt-1">Book a seat for a customer on behalf of your company</p>
+            </div>
+            <a href="{% url 'company:bookings' %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Bookings
+            </a>
+        </div>
+    </div>
+
+    <!-- Booking Form -->
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Trip Selection -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.trip.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-route mr-2"></i>Select Trip
+                    </label>
+                    {{ form.trip }}
+                    {% if form.trip.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.trip.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.seat.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-chair mr-2"></i>Select Seat
+                    </label>
+                    {{ form.seat }}
+                    {% if form.seat.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.seat.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Passenger Information -->
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Passenger Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="{{ form.passenger_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user mr-2"></i>Full Name
+                        </label>
+                        {{ form.passenger_name }}
+                        {% if form.passenger_name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.passenger_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.passenger_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2"></i>Phone Number
+                        </label>
+                        {{ form.passenger_phone }}
+                        {% if form.passenger_phone.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.passenger_phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.passenger_email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2"></i>Email (Optional)
+                        </label>
+                        {{ form.passenger_email }}
+                        {% if form.passenger_email.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.passenger_email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Information -->
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Pricing Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div>
+                        <label for="{{ form.base_fare.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave mr-2"></i>Base Fare
+                        </label>
+                        {{ form.base_fare }}
+                        {% if form.base_fare.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.base_fare.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.seat_fee.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-plus mr-2"></i>Seat Fee
+                        </label>
+                        {{ form.seat_fee }}
+                        {% if form.seat_fee.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.seat_fee.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.service_fee.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-cog mr-2"></i>Service Fee
+                        </label>
+                        {{ form.service_fee }}
+                        {% if form.service_fee.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.service_fee.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.total_amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calculator mr-2"></i>Total Amount
+                        </label>
+                        {{ form.total_amount }}
+                        {% if form.total_amount.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.total_amount.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Source -->
+            <div class="border-t pt-6">
+                <div class="max-w-md">
+                    <label for="{{ form.source.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-2"></i>Booking Source
+                    </label>
+                    {{ form.source }}
+                    {% if form.source.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.source.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="border-t pt-6 flex items-center justify-end space-x-4">
+                <a href="{% url 'company:bookings' %}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-save mr-2"></i>Create Booking
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-calculate total amount
+    const baseFare = document.getElementById('{{ form.base_fare.id_for_label }}');
+    const seatFee = document.getElementById('{{ form.seat_fee.id_for_label }}');
+    const serviceFee = document.getElementById('{{ form.service_fee.id_for_label }}');
+    const totalAmount = document.getElementById('{{ form.total_amount.id_for_label }}');
+    
+    function calculateTotal() {
+        const base = parseFloat(baseFare.value) || 0;
+        const seat = parseFloat(seatFee.value) || 0;
+        const service = parseFloat(serviceFee.value) || 0;
+        const total = base + seat + service;
+        totalAmount.value = total.toFixed(2);
+    }
+    
+    [baseFare, seatFee, serviceFee].forEach(input => {
+        input.addEventListener('input', calculateTotal);
+    });
+    
+    // Update seat options when trip changes
+    const tripSelect = document.getElementById('{{ form.trip.id_for_label }}');
+    const seatSelect = document.getElementById('{{ form.seat.id_for_label }}');
+    
+    tripSelect.addEventListener('change', function() {
+        // This would typically make an AJAX call to get available seats
+        // For now, we'll just enable the seat field
+        seatSelect.disabled = false;
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

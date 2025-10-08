@@ -1,0 +1,284 @@
+{% extends 'company/base.html' %}
+
+{% block title %}{{ bus.license_plate }} - Bus Details - Bookutu{% endblock %}
+{% block page_title %}Bus Details{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ bus.license_plate }}</h1>
+                <p class="text-gray-600 mt-1">{{ bus.make }} {{ bus.model }} - {{ bus.year }}</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'company:fleet' %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Fleet
+                </a>
+                <a href="{% url 'company:edit_bus' bus.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-edit mr-2"></i>Edit Bus
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Bus Information -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Bus Status Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Bus Status</h3>
+                    <span class="px-3 py-1 text-sm font-semibold rounded-full {% if bus.status == 'ACTIVE' %}bg-green-100 text-green-800{% elif bus.status == 'MAINTENANCE' %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ bus.get_status_display }}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">License Plate</p>
+                        <p class="font-semibold text-gray-900">{{ bus.license_plate }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Bus Type</p>
+                        <p class="font-semibold text-gray-900">{{ bus.get_bus_type_display }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Total Seats</p>
+                        <p class="font-semibold text-gray-900">{{ bus.total_seats }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Year</p>
+                        <p class="font-semibold text-gray-900">{{ bus.year }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bus Specifications -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Bus Specifications</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Basic Information</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Make</span>
+                                <span class="font-medium">{{ bus.make }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Model</span>
+                                <span class="font-medium">{{ bus.model }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Year</span>
+                                <span class="font-medium">{{ bus.year }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Capacity</span>
+                                <span class="font-medium">{{ bus.total_seats }} seats</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Features</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Air Conditioning</span>
+                                <span class="{% if bus.has_ac %}text-green-600{% else %}text-gray-400{% endif %}">
+                                    <i class="fas {% if bus.has_ac %}fa-check{% else %}fa-times{% endif %}"></i>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">WiFi</span>
+                                <span class="{% if bus.has_wifi %}text-green-600{% else %}text-gray-400{% endif %}">
+                                    <i class="fas {% if bus.has_wifi %}fa-check{% else %}fa-times{% endif %}"></i>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Charging Ports</span>
+                                <span class="{% if bus.has_charging_ports %}text-green-600{% else %}text-gray-400{% endif %}">
+                                    <i class="fas {% if bus.has_charging_ports %}fa-check{% else %}fa-times{% endif %}"></i>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Entertainment</span>
+                                <span class="{% if bus.has_entertainment %}text-green-600{% else %}text-gray-400{% endif %}">
+                                    <i class="fas {% if bus.has_entertainment %}fa-check{% else %}fa-times{% endif %}"></i>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Restroom</span>
+                                <span class="{% if bus.has_restroom %}text-green-600{% else %}text-gray-400{% endif %}">
+                                    <i class="fas {% if bus.has_restroom %}fa-check{% else %}fa-times{% endif %}"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Information -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Maintenance Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Maintenance History</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Last Maintenance</span>
+                                <span class="font-medium">
+                                    {% if bus.last_maintenance %}
+                                        {{ bus.last_maintenance|date:"M d, Y" }}
+                                    {% else %}
+                                        Not recorded
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Next Maintenance</span>
+                                <span class="font-medium">
+                                    {% if bus.next_maintenance %}
+                                        {{ bus.next_maintenance|date:"M d, Y" }}
+                                    {% else %}
+                                        Not scheduled
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Maintenance Status</h4>
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            {% if bus.next_maintenance %}
+                                {% now "Y-m-d" as today %}
+                                {% if bus.next_maintenance|date:"Y-m-d" <= today %}
+                                    <div class="flex items-center text-red-600">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <span class="font-medium">Maintenance Due</span>
+                                    </div>
+                                {% else %}
+                                    <div class="flex items-center text-green-600">
+                                        <i class="fas fa-check-circle mr-2"></i>
+                                        <span class="font-medium">Maintenance Up to Date</span>
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="flex items-center text-gray-500">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <span class="font-medium">No maintenance scheduled</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Trips -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Upcoming Trips</h3>
+                
+                {% if upcoming_trips %}
+                    <div class="space-y-3">
+                        {% for trip in upcoming_trips %}
+                        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-route text-blue-600"></i>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h4 class="font-semibold text-gray-900">{{ trip.route.origin_city }} → {{ trip.route.destination_city }}</h4>
+                                <p class="text-sm text-gray-600">{{ trip.departure_date|date:"M d, Y" }} at {{ trip.departure_time|time:"H:i" }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if trip.status == 'SCHEDULED' %}bg-blue-100 text-blue-800{% elif trip.status == 'BOARDING' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ trip.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-calendar-times text-4xl mb-4"></i>
+                        <p>No upcoming trips scheduled for this bus</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Bus Image -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Bus Image</h3>
+                
+                {% if bus.image %}
+                    <img src="{{ bus.image.url }}" alt="{{ bus.license_plate }}" class="w-full h-48 object-cover rounded-lg">
+                {% else %}
+                    <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <div class="text-center text-gray-500">
+                            <i class="fas fa-bus text-4xl mb-2"></i>
+                            <p class="text-sm">No image available</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                
+                <div class="space-y-3">
+                    <a href="{% url 'company:edit_bus' bus.id %}" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center block">
+                        <i class="fas fa-edit mr-2"></i>Edit Bus Details
+                    </a>
+                    
+                    {% if bus.status == 'ACTIVE' %}
+                    <button class="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                        <i class="fas fa-wrench mr-2"></i>Mark for Maintenance
+                    </button>
+                    {% elif bus.status == 'MAINTENANCE' %}
+                    <button class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        <i class="fas fa-check mr-2"></i>Mark as Active
+                    </button>
+                    {% endif %}
+                    
+                    <button class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                        <i class="fas fa-calendar-plus mr-2"></i>Schedule Trip
+                    </button>
+                    
+                    <button class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        <i class="fas fa-trash mr-2"></i>Remove Bus
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bus Statistics -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Bus Statistics</h3>
+                
+                <div class="space-y-4">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">0</div>
+                        <div class="text-sm text-gray-600">Total Trips</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">0</div>
+                        <div class="text-sm text-gray-600">Passengers Served</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-2xl font-bold text-yellow-600">0</div>
+                        <div class="text-sm text-gray-600">Revenue Generated</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

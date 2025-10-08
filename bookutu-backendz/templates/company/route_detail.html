@@ -1,0 +1,258 @@
+{% extends 'company/base.html' %}
+
+{% block title %}{{ route.name }} - Route Details - Bookutu{% endblock %}
+{% block page_title %}Route Details{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ route.name }}</h1>
+                <p class="text-gray-600 mt-1">{{ route.origin_city }} → {{ route.destination_city }}</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'company:routes' %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Routes
+                </a>
+                <a href="{% url 'company:edit_route' route.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-edit mr-2"></i>Edit Route
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Route Information -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Route Status Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Route Status</h3>
+                    <span class="px-3 py-1 text-sm font-semibold rounded-full {% if route.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {% if route.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Distance</p>
+                        <p class="font-semibold text-gray-900">{{ route.distance_km }} km</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Duration</p>
+                        <p class="font-semibold text-gray-900">{{ route.estimated_duration_hours }} hours</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Base Fare</p>
+                        <p class="font-semibold text-gray-900">UGX {{ route.base_fare|floatformat:0 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Total Trips</p>
+                        <p class="font-semibold text-gray-900">{{ upcoming_trips|length }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Map -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Route Map</h3>
+                
+                <div class="flex items-center justify-center p-8 bg-gray-50 rounded-lg">
+                    <div class="text-center">
+                        <div class="flex items-center justify-center space-x-4 mb-4">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+                                <span class="ml-2 text-sm font-medium">{{ route.origin_city }}</span>
+                            </div>
+                            <div class="flex-1 h-0.5 bg-gray-300 relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="fas fa-arrow-right text-gray-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium">{{ route.destination_city }}</span>
+                                <div class="ml-2 w-4 h-4 bg-green-500 rounded-full"></div>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600">{{ route.distance_km }} km • {{ route.estimated_duration_hours }} hours</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Details -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Route Details</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Origin Information</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">City</span>
+                                <span class="font-medium">{{ route.origin_city }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Terminal</span>
+                                <span class="font-medium">{{ route.origin_terminal }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Destination Information</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">City</span>
+                                <span class="font-medium">{{ route.destination_city }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Terminal</span>
+                                <span class="font-medium">{{ route.destination_terminal }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intermediate Stops -->
+            {% if route.intermediate_stops %}
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Intermediate Stops</h3>
+                
+                <div class="space-y-3">
+                    {% for stop in route.intermediate_stops %}
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-map-pin text-yellow-600 text-sm"></i>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <h4 class="font-medium text-gray-900">{{ stop.city }}</h4>
+                            <p class="text-sm text-gray-600">Stop duration: {{ stop.duration_minutes }} minutes</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Upcoming Trips -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Upcoming Trips</h3>
+                
+                {% if upcoming_trips %}
+                    <div class="space-y-3">
+                        {% for trip in upcoming_trips %}
+                        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-bus text-blue-600"></i>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h4 class="font-semibold text-gray-900">{{ trip.bus.license_plate }} - {{ trip.bus.make }} {{ trip.bus.model }}</h4>
+                                <p class="text-sm text-gray-600">{{ trip.departure_date|date:"M d, Y" }} at {{ trip.departure_time|time:"H:i" }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full {% if trip.status == 'SCHEDULED' %}bg-blue-100 text-blue-800{% elif trip.status == 'BOARDING' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ trip.get_status_display }}
+                                </span>
+                                <p class="text-sm text-gray-600 mt-1">UGX {{ trip.base_fare|floatformat:0 }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-calendar-times text-4xl mb-4"></i>
+                        <p>No upcoming trips scheduled for this route</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                
+                <div class="space-y-3">
+                    <a href="{% url 'company:edit_route' route.id %}" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center block">
+                        <i class="fas fa-edit mr-2"></i>Edit Route
+                    </a>
+                    
+                    <button class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        <i class="fas fa-plus mr-2"></i>Schedule Trip
+                    </button>
+                    
+                    {% if route.is_active %}
+                    <button class="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                        <i class="fas fa-pause mr-2"></i>Deactivate Route
+                    </button>
+                    {% else %}
+                    <button class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        <i class="fas fa-play mr-2"></i>Activate Route
+                    </button>
+                    {% endif %}
+                    
+                    <button class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        <i class="fas fa-trash mr-2"></i>Delete Route
+                    </button>
+                </div>
+            </div>
+
+            <!-- Route Statistics -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Route Statistics</h3>
+                
+                <div class="space-y-4">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">{{ upcoming_trips|length }}</div>
+                        <div class="text-sm text-gray-600">Scheduled Trips</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">0</div>
+                        <div class="text-sm text-gray-600">Total Bookings</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-2xl font-bold text-yellow-600">0</div>
+                        <div class="text-sm text-gray-600">Revenue Generated</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Information -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Route Information</h3>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Route Name</span>
+                        <span class="font-medium">{{ route.name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Distance</span>
+                        <span class="font-medium">{{ route.distance_km }} km</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Duration</span>
+                        <span class="font-medium">{{ route.estimated_duration_hours }} hours</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Base Fare</span>
+                        <span class="font-medium">UGX {{ route.base_fare|floatformat:0 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Status</span>
+                        <span class="font-medium {% if route.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if route.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

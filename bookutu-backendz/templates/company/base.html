@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Bookutu - Company Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar { width: 260px; transition: all 0.3s ease; }
+        .main-content { margin-left: 260px; transition: all 0.3s ease; }
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .main-content { margin-left: 80px; }
+            .sidebar .menu-text { display: none; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="font-sans bg-gray-50 flex">
+    <!-- Sidebar -->
+    <div class="sidebar fixed h-full bg-white shadow-md z-10">
+        <div class="p-5 flex items-center justify-center border-b">
+            <div class="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center">
+                <i class="fas fa-bus text-white text-sm"></i>
+            </div>
+            <h1 class="text-xl font-bold text-gray-800 ml-3 menu-text">Bookutu</h1>
+        </div>
+        
+        <div class="p-4">
+            <ul class="space-y-2">
+                <li>
+                    <a href="/company/" class="flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100 {% if request.resolver_match.url_name == 'dashboard' %}bg-blue-100 text-blue-700{% endif %}">
+                        <i class="fas fa-chart-pie w-5"></i>
+                        <span class="ml-3 menu-text">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/company/fleet/" class="flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100 {% if request.resolver_match.url_name == 'fleet' %}bg-blue-100 text-blue-700{% endif %}">
+                        <i class="fas fa-bus w-5"></i>
+                        <span class="ml-3 menu-text">Fleet Management</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/company/routes/" class="flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100 {% if request.resolver_match.url_name == 'routes' %}bg-blue-100 text-blue-700{% endif %}">
+                        <i class="fas fa-route w-5"></i>
+                        <span class="ml-3 menu-text">Routes & Schedules</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/company/bookings/" class="flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100 {% if request.resolver_match.url_name == 'bookings' %}bg-blue-100 text-blue-700{% endif %}">
+                        <i class="fas fa-ticket-alt w-5"></i>
+                        <span class="ml-3 menu-text">Bookings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/company/drivers/" class="flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100 {% if request.resolver_match.url_name == 'drivers' %}bg-blue-100 text-blue-700{% endif %}">
+                        <i class="fas fa-user-tie w-5"></i>
+                        <span class="ml-3 menu-text">Drivers</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/company/reports/" class="flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100 {% if request.resolver_match.url_name == 'reports' %}bg-blue-100 text-blue-700{% endif %}">
+                        <i class="fas fa-chart-line w-5"></i>
+                        <span class="ml-3 menu-text">Reports</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/company/settings/" class="flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100 {% if request.resolver_match.url_name == 'settings' %}bg-blue-100 text-blue-700{% endif %}">
+                        <i class="fas fa-cog w-5"></i>
+                        <span class="ml-3 menu-text">Settings</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="p-3 flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span class="text-blue-700 font-bold">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                    </div>
+                    <div class="ml-3 menu-text">
+                        <p class="text-sm font-medium text-gray-700">{{ user.get_full_name }}</p>
+                        <p class="text-xs text-gray-500">Company Staff</p>
+                    </div>
+                </div>
+                <a href="/accounts/logout/" class="mt-2 flex items-center p-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100">
+                    <i class="fas fa-sign-out-alt w-5"></i>
+                    <span class="ml-3 menu-text">Logout</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content w-full">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="flex items-center justify-between p-4">
+                <div class="flex items-center">
+                    <button class="p-2 rounded-md text-gray-700 md:hidden">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="ml-2 text-xl font-semibold text-gray-800">{% block page_title %}Dashboard{% endblock %}</h2>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="p-2 rounded-full hover:bg-gray-100">
+                            <i class="fas fa-bell text-gray-600"></i>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <input type="text" placeholder="Search..." class="w-48 px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="p-6">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
