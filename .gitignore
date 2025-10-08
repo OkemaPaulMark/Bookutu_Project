@@ -43,3 +43,57 @@ app.*.map.json
 .venv/
 env/
 venv/
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Flutter/Dart/Pub related
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/build/
+**/ios/Flutter/.last_build_id
+**/doc/api/
+
+# Firebase (optional if private)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Obfuscation/Symbolication
+app.*.symbols
+app.*.map.json
+
+# Android Studio build outputs
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+
+.venv/
+env/
+venv/
+.env/
+
+# Local tooling/cache
+.cursor-free-vip/
+
+# Export artifacts (not needed in repo)
+export/
+export_artifacts.zip
