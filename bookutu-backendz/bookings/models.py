@@ -1,8 +1,11 @@
+import logging
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from accounts.managers import TenantAwareManager
 import uuid
+
+logger = logging.getLogger(__name__)
 
 
 User = get_user_model()
@@ -96,31 +99,38 @@ class Booking(models.Model):
     
     def confirm_booking(self):
         """Confirm the booking"""
+        logger.info(f"Confirming booking {self.booking_reference} for trip {self.trip}")
         self.status = 'CONFIRMED'
         self.confirmed_at = timezone.now()
         self.save()
-        
+
         # Update trip booked seats count
+        old_booked = self.trip.booked_seats
         self.trip.booked_seats += 1
         self.trip.save()
+        logger.info(f"Updated trip {self.trip} booked seats: {old_booked} -> {self.trip.booked_seats}")
     
     def cancel_booking(self, reason=""):
         """Cancel the booking"""
+        logger.info(f"Cancelling booking {self.booking_reference} for trip {self.trip}")
         self.status = 'CANCELLED'
         self.cancelled_at = timezone.now()
         self.save()
-        
+
         # Update trip booked seats count
         if self.trip.booked_seats > 0:
+            old_booked = self.trip.booked_seats
             self.trip.booked_seats -= 1
             self.trip.save()
-        
+            logger.info(f"Updated trip {self.trip} booked seats: {old_booked} -> {self.trip.booked_seats}")
+
         # Create cancellation record
         BookingCancellation.objects.create(
             booking=self,
             reason=reason,
             cancelled_by=self.passenger
         )
+        logger.info(f"Created cancellation record for booking {self.booking_reference}")
     
     def calculate_cancellation_fee(self):
         """Calculate cancellation fee based on company policy"""

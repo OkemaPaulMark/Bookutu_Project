@@ -1,0 +1,206 @@
+{% extends 'company/base.html' %}
+
+{% block title %}Edit Trip #{{ trip.id }} - Bookutu{% endblock %}
+{% block page_title %}Edit Trip{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Edit Trip #{{ trip.id }}</h1>
+                <p class="text-gray-600 mt-1">{{ trip.route.origin_city }} → {{ trip.route.destination_city }}</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'company:trip_detail' trip.id %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-eye mr-2"></i>View Trip
+                </a>
+                <a href="{% url 'company:trips' %}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Trips
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trip Form -->
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Trip Schedule -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Trip Schedule</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.route.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-route mr-2"></i>Route *
+                        </label>
+                        {{ form.route }}
+                        {% if form.route.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.route.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.bus.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-bus mr-2"></i>Bus *
+                        </label>
+                        {{ form.bus }}
+                        {% if form.bus.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.bus.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.departure_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar mr-2"></i>Departure Date *
+                        </label>
+                        {{ form.departure_date }}
+                        {% if form.departure_date.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.departure_date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.departure_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-clock mr-2"></i>Departure Time *
+                        </label>
+                        {{ form.departure_time }}
+                        {% if form.departure_time.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.departure_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.arrival_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-clock mr-2"></i>Arrival Time *
+                        </label>
+                        {{ form.arrival_time }}
+                        {% if form.arrival_time.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.arrival_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.base_fare.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave mr-2"></i>Base Fare (UGX) *
+                        </label>
+                        {{ form.base_fare }}
+                        {% if form.base_fare.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.base_fare.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Driver Information -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Driver Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.driver_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user mr-2"></i>Driver Name *
+                        </label>
+                        {{ form.driver_name }}
+                        {% if form.driver_name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.driver_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.driver_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2"></i>Driver Phone *
+                        </label>
+                        {{ form.driver_phone }}
+                        {% if form.driver_phone.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.driver_phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.conductor_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user-tie mr-2"></i>Conductor Name
+                        </label>
+                        {{ form.conductor_name }}
+                        {% if form.conductor_name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.conductor_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.conductor_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2"></i>Conductor Phone
+                        </label>
+                        {{ form.conductor_phone }}
+                        {% if form.conductor_phone.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.conductor_phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trip Details -->
+            <div class="border-b pb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Trip Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-info-circle mr-2"></i>Status *
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.status.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-sticky-note mr-2"></i>Notes
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.notes.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-end space-x-4">
+                <a href="{% url 'company:trip_detail' trip.id %}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-save mr-2"></i>Update Trip
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validate times
+    const departureTimeInput = document.getElementById('{{ form.departure_time.id_for_label }}');
+    const arrivalTimeInput = document.getElementById('{{ form.arrival_time.id_for_label }}');
+
+    function validateTimes() {
+        if (departureTimeInput.value && arrivalTimeInput.value) {
+            if (departureTimeInput.value >= arrivalTimeInput.value) {
+                arrivalTimeInput.setCustomValidity('Arrival time must be after departure time');
+            } else {
+                arrivalTimeInput.setCustomValidity('');
+            }
+        }
+    }
+
+    if (departureTimeInput && arrivalTimeInput) {
+        departureTimeInput.addEventListener('change', validateTimes);
+        arrivalTimeInput.addEventListener('change', validateTimes);
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

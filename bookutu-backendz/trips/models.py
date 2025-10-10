@@ -1,8 +1,11 @@
+import logging
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from accounts.managers import TenantAwareManager
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 
 class Route(models.Model):
@@ -124,21 +127,79 @@ class Trip(models.Model):
         return f"{self.route} - {self.departure_date} {self.departure_time}"
     
     def clean(self):
+        logger.info(f"Validating trip {self} for company {self.company}")
+
         # Validate that bus belongs to the same company
         if self.bus and self.bus.company != self.company:
+            logger.error(f"Bus {self.bus} company {self.bus.company} != trip company {self.company}")
             raise ValidationError("Bus must belong to the same company as the trip")
-        
+
         # Validate that route belongs to the same company
         if self.route and self.route.company != self.company:
+            logger.error(f"Route {self.route} company {self.route.company} != trip company {self.company}")
             raise ValidationError("Route must belong to the same company as the trip")
-        
+
+        # Check for bus scheduling conflicts
+        if self.bus and self.departure_date and self.departure_time and self.arrival_time:
+            # Check if bus is already scheduled for another trip at overlapping time
+            # A conflict occurs if:
+            # - Another trip starts during this trip's duration
+            # - Another trip ends during this trip's duration
+            # - Another trip completely encompasses this trip
+            conflicting_trips = Trip.objects.filter(
+                bus=self.bus,
+                departure_date=self.departure_date
+            ).exclude(pk=self.pk).filter(
+                models.Q(
+                    # Other trip starts during this trip
+                    departure_time__gte=self.departure_time,
+                    departure_time__lt=self.arrival_time
+                ) | models.Q(
+                    # Other trip ends during this trip
+                    arrival_time__gt=self.departure_time,
+                    arrival_time__lte=self.arrival_time
+                ) | models.Q(
+                    # Other trip encompasses this trip
+                    departure_time__lte=self.departure_time,
+                    arrival_time__gte=self.arrival_time
+                )
+            )
+
+            if conflicting_trips.exists():
+                conflict_details = [f"Trip {t.id}: {t.route.name} ({t.departure_time}-{t.arrival_time})" for t in conflicting_trips]
+                logger.error(f"Bus scheduling conflict for {self.bus} on {self.departure_date}: {conflict_details}")
+                raise ValidationError(f"Bus {self.bus.license_plate} is already scheduled for conflicting trips: {', '.join(conflict_details)}")
+
+        # Validate departure before arrival
+        if self.departure_time and self.arrival_time and self.departure_time >= self.arrival_time:
+            logger.error(f"Trip {self} has invalid times: departure {self.departure_time} >= arrival {self.arrival_time}")
+            raise ValidationError("Arrival time must be after departure time")
+
         # Set available seats based on bus capacity
         if self.bus:
             self.available_seats = self.bus.total_seats
+            logger.info(f"Set available seats to {self.available_seats} for bus {self.bus}")
     
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        logger.info(f"Saving trip {self} (new: {is_new})")
+
         self.clean()
         super().save(*args, **kwargs)
+
+        # Create TripPricing if this is a new trip
+        if is_new:
+            TripPricing.objects.get_or_create(
+                trip=self,
+                defaults={
+                    'peak_season_multiplier': 1.00,
+                    'demand_multiplier': 1.00,
+                    'early_bird_discount': 0.00,
+                    'early_bird_days': 7,
+                    'final_base_fare': self.base_fare
+                }
+            )
+            logger.info(f"Created TripPricing for new trip {self}")
     
     @property
     def occupancy_percentage(self):

@@ -1,0 +1,136 @@
+{% extends 'company/base.html' %}
+
+{% block title %}Trips - Bookutu{% endblock %}
+{% block page_title %}Trip Management{% endblock %}
+
+{% block content %}
+
+<!-- Filters -->
+<div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+            <input type="text" name="search" value="{{ search }}" placeholder="Search trips..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+            <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Status</option>
+                <option value="SCHEDULED" {% if status == 'SCHEDULED' %}selected{% endif %}>Scheduled</option>
+                <option value="BOARDING" {% if status == 'BOARDING' %}selected{% endif %}>Boarding</option>
+                <option value="IN_TRANSIT" {% if status == 'IN_TRANSIT' %}selected{% endif %}>In Transit</option>
+                <option value="COMPLETED" {% if status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                <option value="DELAYED" {% if status == 'DELAYED' %}selected{% endif %}>Delayed</option>
+            </select>
+        </div>
+        <div>
+            <select name="route" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Routes</option>
+                {% for route in routes %}
+                <option value="{{ route.id }}" {% if route_id == route.id|stringformat:'s' %}selected{% endif %}>{{ route.origin_city }} → {{ route.destination_city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex space-x-2">
+            <input type="date" name="date_from" value="{{ date_from }}" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="date" name="date_to" value="{{ date_to }}" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2 lg:col-span-4 flex justify-end space-x-2">
+            <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                <i class="fas fa-search mr-2"></i>Filter
+            </button>
+            <a href="{% url 'company:create_trip' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <i class="fas fa-plus mr-2"></i>Create Trip
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Trips Table -->
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">Your Trips</h3>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip Details</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bus</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for trip in page_obj %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-bus text-green-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ trip.route.origin_city }} → {{ trip.route.destination_city }}</div>
+                                <div class="text-sm text-gray-500">Trip #{{ trip.id }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.route.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.bus.license_plate }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div>{{ trip.departure_date|date:"M d, Y" }}</div>
+                        <div class="text-xs">{{ trip.departure_time|time:"H:i" }} - {{ trip.arrival_time|time:"H:i" }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                            {% if trip.status == 'SCHEDULED' %}bg-blue-100 text-blue-800
+                            {% elif trip.status == 'BOARDING' %}bg-yellow-100 text-yellow-800
+                            {% elif trip.status == 'IN_TRANSIT' %}bg-purple-100 text-purple-800
+                            {% elif trip.status == 'COMPLETED' %}bg-green-100 text-green-800
+                            {% elif trip.status == 'CANCELLED' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ trip.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div>{{ trip.booked_seats }}/{{ trip.available_seats }}</div>
+                        <div class="text-xs">{{ trip.occupancy_percentage|floatformat:1 }}% full</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="{% url 'company:trip_detail' trip.id %}" class="text-blue-600 hover:text-blue-900 mr-3">View</a>
+                        <a href="{% url 'company:edit_trip' trip.id %}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
+                        <a href="{% url 'company:trip_manifest' trip.id %}" class="text-green-600 hover:text-green-900">Manifest</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">No trips found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} trips
+            </div>
+            <div class="flex space-x-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if route_id %}&route={{ route_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if route_id %}&route={{ route_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Next</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

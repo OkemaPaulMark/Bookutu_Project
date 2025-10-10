@@ -32,7 +32,14 @@ def company_dashboard(request):
     
     # Active routes
     active_routes = Route.objects.filter(company=company, is_active=True).count()
-    
+
+    # Trip statistics
+    scheduled_trips = Trip.objects.filter(
+        company=company,
+        status='SCHEDULED',
+        departure_date__gte=today
+    ).count()
+
     # Monthly revenue
     monthly_revenue = Booking.objects.filter(
         company=company,
@@ -54,6 +61,7 @@ def company_dashboard(request):
         'today_bookings': today_bookings,
         'active_buses': active_buses,
         'active_routes': active_routes,
+        'scheduled_trips': scheduled_trips,
         'monthly_revenue': monthly_revenue,
         'recent_bookings': recent_bookings,
         'fleet_status': fleet_status,
@@ -555,14 +563,171 @@ def create_staff(request):
 def staff_list(request):
     """List company staff members"""
     company = request.user.company
-    
+
     staff_members = User.objects.filter(
         company=company,
         user_type='COMPANY_STAFF'
     ).order_by('first_name', 'last_name')
-    
+
     context = {
         'staff_members': staff_members,
     }
-    
+
     return render(request, 'company/staff_list.html', context)
+
+
+@login_required
+def company_trips(request):
+    """List and manage trips"""
+    company = request.user.company
+
+    # Get search and filter parameters
+    search = request.GET.get('search', '')
+    status = request.GET.get('status', '')
+    route_id = request.GET.get('route', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    trips = Trip.objects.filter(company=company).select_related(
+        'route', 'bus'
+    ).order_by('-departure_date', '-departure_time')
+
+    if search:
+        trips = trips.filter(
+            Q(route__name__icontains=search) |
+            Q(bus__license_plate__icontains=search) |
+            Q(driver_name__icontains=search)
+        )
+
+    if status:
+        trips = trips.filter(status=status)
+
+    if route_id:
+        trips = trips.filter(route_id=route_id)
+
+    if date_from:
+        trips = trips.filter(departure_date__gte=date_from)
+
+    if date_to:
+        trips = trips.filter(departure_date__lte=date_to)
+
+    # Pagination
+    paginator = Paginator(trips, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Get routes for filter dropdown
+    routes = Route.objects.filter(company=company, is_active=True)
+
+    context = {
+        'page_obj': page_obj,
+        'search': search,
+        'status': status,
+        'route_id': route_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'routes': routes,
+    }
+
+    return render(request, 'company/trips.html', context)
+
+
+@login_required
+def trip_detail(request, trip_id):
+    """View trip details"""
+    company = request.user.company
+    trip = get_object_or_404(Trip, id=trip_id, company=company)
+
+    # Get bookings for this trip
+    bookings = Booking.objects.filter(trip=trip).select_related(
+        'passenger', 'seat'
+    ).order_by('seat__row_number', 'seat__seat_number')
+
+    # Calculate trip statistics
+    total_bookings = bookings.count()
+    confirmed_bookings = bookings.filter(status='CONFIRMED').count()
+    total_revenue = bookings.filter(status='CONFIRMED').aggregate(
+        total=Sum('total_amount')
+    )['total'] or 0
+
+    context = {
+        'trip': trip,
+        'bookings': bookings,
+        'total_bookings': total_bookings,
+        'confirmed_bookings': confirmed_bookings,
+        'total_revenue': total_revenue,
+    }
+
+    return render(request, 'company/trip_detail.html', context)
+
+
+@login_required
+def create_trip(request):
+    """Create a new trip"""
+    company = request.user.company
+
+    if request.method == 'POST':
+        from trips.forms import TripForm
+        form = TripForm(request.POST, company=company)
+        if form.is_valid():
+            trip = form.save()  # Form's save method handles company assignment
+            messages.success(request, 'Trip created successfully!')
+            return redirect('company:trip_detail', trip_id=trip.id)
+    else:
+        from trips.forms import TripForm
+        form = TripForm(company=company)
+
+    context = {
+        'form': form,
+    }
+
+    return render(request, 'company/create_trip.html', context)
+
+
+@login_required
+def edit_trip(request, trip_id):
+    """Edit trip details"""
+    company = request.user.company
+    trip = get_object_or_404(Trip, id=trip_id, company=company)
+
+    if request.method == 'POST':
+        from trips.forms import TripForm
+        form = TripForm(request.POST, instance=trip, company=company)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Trip updated successfully!')
+            return redirect('company:trip_detail', trip_id=trip.id)
+    else:
+        from trips.forms import TripForm
+        form = TripForm(instance=trip, company=company)
+
+    context = {
+        'form': form,
+        'trip': trip,
+    }
+
+    return render(request, 'company/edit_trip.html', context)
+
+
+@login_required
+def trip_manifest(request, trip_id):
+    """View trip passenger manifest"""
+    company = request.user.company
+    trip = get_object_or_404(Trip, id=trip_id, company=company)
+
+    # Get confirmed bookings for this trip
+    bookings = Booking.objects.filter(
+        trip=trip,
+        status='CONFIRMED'
+    ).select_related('seat', 'passenger').order_by('seat__row_number', 'seat__seat_number')
+
+    total_revenue = sum(booking.total_amount for booking in bookings)
+
+    context = {
+        'trip': trip,
+        'bookings': bookings,
+        'total_passengers': bookings.count(),
+        'total_revenue': total_revenue,
+    }
+
+    return render(request, 'company/trip_manifest.html', context)
