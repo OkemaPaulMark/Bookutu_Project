@@ -38,4 +38,11 @@ urlpatterns = [
     # Staff Management
     path('staff/', views.staff_list, name='staff_list'),
     path('staff/create/', views.create_staff, name='create_staff'),
+
+    # Trips
+    path('trips/', views.company_trips, name='trips'),
+    path('trips/create/', views.create_trip, name='create_trip'),
+    path('trips/<int:trip_id>/', views.trip_detail, name='trip_detail'),
+    path('trips/<int:trip_id>/edit/', views.edit_trip, name='edit_trip'),
+    path('trips/<int:trip_id>/manifest/', views.trip_manifest, name='trip_manifest'),
 ]

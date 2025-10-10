@@ -1,5 +1,6 @@
 from django import forms
 from .models import Route, Trip, TripPricing
+from companies.models import Bus
 
 
 class RouteForm(forms.ModelForm):
@@ -119,13 +120,25 @@ class TripForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
-        company = kwargs.pop('company', None)
+        self.company = kwargs.pop('company', None)
         super().__init__(*args, **kwargs)
-        
-        if company:
+
+        if self.company:
             # Filter routes and buses to only show those belonging to the company
-            self.fields['route'].queryset = Route.objects.filter(company=company)
-            self.fields['bus'].queryset = Bus.objects.filter(company=company)
+            self.fields['route'].queryset = Route.objects.filter(company=self.company)
+            self.fields['bus'].queryset = Bus.objects.filter(company=self.company)
+
+            # Set company on instance if it's a new instance
+            if not self.instance.pk and self.company:
+                self.instance.company = self.company
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.company:
+            instance.company = self.company
+        if commit:
+            instance.save()
+        return instance
 
 
 class TripPricingForm(forms.ModelForm):
