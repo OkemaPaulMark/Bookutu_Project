@@ -58,19 +58,10 @@ class SystemSettings(models.Model):
 class Advert(models.Model):
     """Platform-wide adverts managed by super admins"""
 
-    POSITION_CHOICES = [
-        ("HOME_TOP", "Home - Top Banner"),
-        ("HOME_SIDEBAR", "Home - Sidebar"),
-        ("DASHBOARD_TOP", "Admin Dashboard - Top"),
-        ("MOBILE_SPLASH", "Mobile App - Splash"),
-        ("OTHER", "Other"),
-    ]
-
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to="adverts/")
     link_url = models.URLField(blank=True)
-    position = models.CharField(max_length=20, choices=POSITION_CHOICES, default="HOME_TOP")
     is_active = models.BooleanField(default=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)

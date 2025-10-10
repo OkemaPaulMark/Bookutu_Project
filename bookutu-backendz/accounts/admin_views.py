@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -14,6 +15,8 @@ from .admin_forms import (
     CompanyForm, SystemSettingsForm, SuperUserCreationForm,
     CompanySearchForm, BookingSearchForm, FinancialReportForm
 )
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -425,17 +428,32 @@ def admin_adverts(request):
 @login_required
 def create_advert(request):
     """Create a new advert"""
+    logger.info(f"User {request.user} attempting to create advert")
     if not request.user.is_superuser:
+        logger.warning(f"Non-superuser {request.user} tried to create advert")
         messages.error(request, 'Access denied. Super admin privileges required.')
         return redirect('company:dashboard')
     from .admin_forms import AdvertForm
     if request.method == 'POST':
+        logger.info("POST request for advert creation")
         form = AdvertForm(request.POST, request.FILES)
+        logger.info(f"Form data: {request.POST}")
+        logger.info(f"Files: {request.FILES}")
         if form.is_valid():
-            advert = form.save()
-            messages.success(request, f'Advert "{advert.title}" created successfully.')
-            return redirect('super_admin:admin_adverts')
+            logger.info("Form is valid, attempting to save")
+            try:
+                advert = form.save()
+                logger.info(f"Advert saved successfully: {advert.title} (id: {advert.id})")
+                messages.success(request, f'Advert "{advert.title}" created successfully.')
+                return redirect('super_admin:admin_adverts')
+            except Exception as e:
+                logger.error(f"Error saving advert: {e}")
+                messages.error(request, 'Error saving advert. Please try again.')
+        else:
+            logger.warning(f"Form is invalid. Errors: {form.errors}")
+            messages.error(request, 'Please correct the errors below and try again.')
     else:
+        logger.info("GET request for advert creation form")
         form = AdvertForm()
     return render(request, 'admin/create_advert.html', { 'form': form })
 
