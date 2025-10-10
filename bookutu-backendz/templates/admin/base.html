@@ -127,6 +127,21 @@
 
         <!-- Page Content -->
         <main class="p-6 bg-gray-50 min-h-screen">
+            {% if messages %}
+            <div class="mb-4 space-y-2">
+                {% for message in messages %}
+                    {% if message.tags == 'success' %}
+                        <div class="rounded-md bg-green-50 p-4 text-green-800 text-sm">{{ message }}</div>
+                    {% elif message.tags == 'error' %}
+                        <div class="rounded-md bg-red-50 p-4 text-red-800 text-sm">{{ message }}</div>
+                    {% elif message.tags == 'warning' %}
+                        <div class="rounded-md bg-yellow-50 p-4 text-yellow-800 text-sm">{{ message }}</div>
+                    {% else %}
+                        <div class="rounded-md bg-blue-50 p-4 text-blue-800 text-sm">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
             {% block content %}{% endblock %}
         </main>
     </div>

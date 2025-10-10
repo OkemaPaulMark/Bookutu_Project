@@ -291,10 +291,18 @@ class FinancialReportForm(forms.Form):
 class AdvertForm(forms.ModelForm):
     """Form for creating and editing platform adverts"""
 
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        if start_date and end_date and end_date < start_date:
+            self.add_error('end_date', 'End date cannot be before start date.')
+        return cleaned_data
+
     class Meta:
         model = Advert
         fields = [
-            'title', 'description', 'image', 'link_url', 'position',
+            'title', 'description', 'image', 'link_url',
             'is_active', 'start_date', 'end_date'
         ]
         widgets = {
@@ -310,9 +318,6 @@ class AdvertForm(forms.ModelForm):
             'link_url': forms.URLInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
                 'placeholder': 'https://example.com'
-            }),
-            'position': forms.Select(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
             }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded'
