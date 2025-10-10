@@ -5,6 +5,9 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:url_launcher/url_launcher.dart';
+
+
 // Import your pages
 import 'package:bus_app/edit_profile_page.dart';
 import 'package:bus_app/login_screen.dart';
@@ -95,23 +98,25 @@ class _HomePageState extends State<HomePage> {
       username = prefs.getString('username') ?? '';
     });
   }
-Future<void> fetchAdverts() async {
-  try {
-    final response = await http.get(
-      Uri.parse('http://10.10.132.81:8000/api/adverts/'), // Updated to local IP
-    );
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        adverts = data.map((json) => Advert.fromJson(json)).toList();
-      });
-    } else {
-      print('Failed to load adverts: ${response.statusCode}');
+    Future<void> fetchAdverts() async {
+      try {
+        final response = await http.get(
+          Uri.parse('http://10.10.134.137:8000/api/adverts/?all=true'), // use all=true
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          setState(() {
+            adverts = data.map((json) => Advert.fromJson(json)).toList();
+          });
+          print('Loaded ${adverts.length} adverts'); // Debug
+        } else {
+          print('Failed to load adverts: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('Error fetching adverts: $e');
+      }
     }
-  } catch (e) {
-    print('Error fetching adverts: $e');
-  }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +211,7 @@ Future<void> fetchAdverts() async {
             return _buildAdvertTitle();
           } else {
             final ad = adverts[index - 3];
-            return _adTile(ad.imageUrl, ad.title, ad.description);
+            return _adTile(ad.imageUrl, ad.title, ad.description, ad.linkUrl);
           }
         },
       ),
@@ -405,12 +410,22 @@ Future<void> fetchAdverts() async {
     );
   }
 
-  Widget _adTile(String imageUrl, String title, String subtitle) {
-    return Column(
+ Widget _adTile(String imageUrl, String title, String subtitle, [String? linkUrl]) {
+  return InkWell(
+    onTap: linkUrl != null && linkUrl.isNotEmpty
+        ? () async {
+            final Uri url = Uri.parse(linkUrl);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.platformDefault);
+              } else {
+                print('Could not launch $linkUrl');
+              }
+          }
+        : null,
+    child: Column(
       children: [
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -433,15 +448,15 @@ Future<void> fetchAdverts() async {
                     Text(
                       title,
                       style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style:
-                          const TextStyle(fontSize: 13, color: Colors.grey),
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -453,8 +468,10 @@ Future<void> fetchAdverts() async {
         ),
         const Divider(height: 1),
       ],
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _serviceCard(IconData icon, String title, Color color) {
     return Expanded(
