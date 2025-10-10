@@ -1,13 +1,20 @@
+import 'package:flutter/material.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+import 'package:url_launcher/url_launcher.dart';
+
+
+// Import your pages
 import 'package:bus_app/edit_profile_page.dart';
 import 'package:bus_app/login_screen.dart';
 import 'package:bus_app/notification.dart';
 import 'package:bus_app/services/auth_service.dart';
 import 'package:bus_app/settings_page.dart';
-import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'package:bus_app/bookings_page.dart'; // Import the BookingsPage
+import 'package:bus_app/bookings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,11 +23,34 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+class Advert {
+  final String title;
+  final String description;
+  final String imageUrl;
+  final String? linkUrl;
+
+  Advert({
+    required this.title,
+    required this.description,
+    required this.imageUrl,
+    this.linkUrl,
+  });
+
+  factory Advert.fromJson(Map<String, dynamic> json) {
+    return Advert(
+      title: json['title'],
+      description: json['description'],
+      imageUrl: json['image'], // Make sure API returns full URL
+      linkUrl: json['link_url'],
+    );
+  }
+}
+
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-
-  final AuthService _authService = AuthService();
   String username = '';
+  final AuthService _authService = AuthService();
+  List<Advert> adverts = [];
 
   final List<Widget> my_images = [
     Container(
@@ -59,6 +89,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadUsername();
+    fetchAdverts();
   }
 
   Future<void> _loadUsername() async {
@@ -67,14 +98,32 @@ class _HomePageState extends State<HomePage> {
       username = prefs.getString('username') ?? '';
     });
   }
+    Future<void> fetchAdverts() async {
+      try {
+        final response = await http.get(
+          Uri.parse('http://10.10.134.137:8000/api/adverts/?all=true'), // use all=true
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          setState(() {
+            adverts = data.map((json) => Advert.fromJson(json)).toList();
+          });
+          print('Loaded ${adverts.length} adverts'); // Debug
+        } else {
+          print('Failed to load adverts: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('Error fetching adverts: $e');
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D47A1),
-        leadingWidth:
-            200, // Increased leading width to accommodate full username
+        leadingWidth: 200,
         leading: Builder(
           builder: (BuildContext context) {
             return InkWell(
@@ -90,15 +139,13 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(width: 6),
                   Expanded(
-                    // Wrap Text with Expanded to handle overflow (but now with more space)
                     child: Text(
-                      'Hi, $username', // ✅ Now this will work
+                      'Hi, $username',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
-                      // Removed overflow: TextOverflow.ellipsis to show full name
                     ),
                   ),
                 ],
@@ -122,7 +169,6 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.all(12.0),
                   child: Icon(Icons.notifications, color: Colors.white),
                 ),
-                // Badge
                 Positioned(
                   right: 10,
                   top: 6,
@@ -137,7 +183,7 @@ class _HomePageState extends State<HomePage> {
                       minHeight: 10,
                     ),
                     child: const Text(
-                      '2', // Replace with your dynamic count
+                      '2',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 8,
@@ -152,278 +198,234 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       backgroundColor: Colors.white,
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue.shade900, // Matches your app bar color
-                gradient: LinearGradient(
-                  // Optional: Adds a nice gradient effect
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.blue.shade800,
-                    Colors.blue.shade900,
-                  ],
-                ),
-              ),
-              accountName: Text(
-                'Okema Paul',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              accountEmail: Text(
-                'okema@gmail.com',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                ),
-              ),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white, // White background for contrast
-                child: GestureDetector(
-                  child: Text(
-                    'OP', // Using both initials
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Colors.blue.shade900, // Matches your theme
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const EditProfilePage()),
-                    );
-                  },
-                ),
-              ),
-            ),
-            // Main Navigation
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text('Navigation',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.book),
-              title: const Text('My Bookings'),
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BookingsPage()),
-                );
-              },
-            ),
-
-            const Divider(),
-
-            // App Settings
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text('Preferences',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.language),
-              title: const Text('Language'),
-              onTap: () {}, // Language settings
-            ),
-            ListTile(
-              leading: const Icon(Icons.dark_mode),
-              title: const Text('Dark Mode'),
-              trailing: Switch(
-                value: true, // Replace with actual state
-                onChanged: (value) {},
-              ),
-            ),
-
-            const Divider(),
-            // Logout
-
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Log Out', style: TextStyle(color: Colors.red)),
-              onTap: () async {
-                final result = await _authService.logoutUser();
-
-                if (result['success']) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result['message'])),
-                  );
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SignInScreen()),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result['message'])),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-      body: ListView.separated(
-        padding:
-            const EdgeInsets.only(bottom: 20), // Padding for the overall list
-        itemCount: 7, // Adjust based on number of sections + separators
-        separatorBuilder: (context, index) {
-          // Add space between Carousel, Services, and Advertisements title
-          if (index == 0) {
-            return const SizedBox(height: 20);
-          } else if (index == 1) {
-            return const SizedBox(
-                height: 30); // Increased space after Services section
-          } else if (index == 2 || index == 4) {
-            return const SizedBox(height: 20);
-          }
-          return const SizedBox.shrink(); // No separator for other items
-        },
+      drawer: _buildDrawer(),
+      body: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 20),
+        itemCount: 3 + adverts.length, // Carousel + Services + Title + dynamic adverts
         itemBuilder: (context, index) {
           if (index == 0) {
-            // Carousel Slider section
-            return Column(
-              children: [
-                const SizedBox(height: 10), // Reduced spacing at the top
-                CarouselSlider(
-                  items: my_images,
-                  options: CarouselOptions(
-                    onPageChanged: (index, reason) {
-                      setState(() {
-                        _currentIndex = index;
-                      });
-                    },
-                    height: 200,
-                    autoPlay: true,
-                    viewportFraction: 0.9,
-                    enlargeCenterPage: true,
-                    enableInfiniteScroll: true,
-                    autoPlayInterval: const Duration(seconds: 4),
-                    autoPlayAnimationDuration:
-                        const Duration(milliseconds: 800),
-                    autoPlayCurve: Curves.fastOutSlowIn,
-                  ),
-                ),
-                const SizedBox(height: 10), // Reduced spacing
-                AnimatedSmoothIndicator(
-                  activeIndex: _currentIndex,
-                  count: my_images.length,
-                  effect: ExpandingDotsEffect(
-                    dotHeight: 8,
-                    dotWidth: 8,
-                    activeDotColor: Colors.blue.shade900,
-                    dotColor: Colors.grey.shade400,
-                    expansionFactor: 2.0,
-                  ),
-                ),
-              ],
-            );
+            return _buildCarousel();
           } else if (index == 1) {
-            // Services Section
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Services',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade900),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10), // Reduced spacing
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _serviceCard(Icons.access_alarm, 'Timely Arrival',
-                          Colors.amber.shade700),
-                      _serviceCard(Icons.directions_bus, 'Comfy Rides',
-                          Colors.green.shade700),
-                      _serviceCard(
-                          Icons.security, 'Safe Travel', Colors.red.shade700),
-                    ],
-                  ),
-                ),
-              ],
-            );
+            return _buildServices();
           } else if (index == 2) {
-            // Advertisements Title
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text(
-                    'Advertisements',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900),
-                  ),
-                ],
-              ),
-            );
-          } else if (index == 3) {
-            // First Advertisement
-            return _adTile('images/hotel.jpg', 'Khemi Hotel',
-                'Your number one hotel in town with the best services, offering luxurious stays and exquisite dining.');
-          } else if (index == 4) {
-            // Second Advertisement
-            return _adTile('images/concert.jpg', 'Live Concert',
-                'Experience the best music live from top artists, a night to remember with friends and family.');
-          } else if (index == 5) {
-            // Third Advertisement
-            return _adTile('images/4.jpg', 'Travel Insurance',
-                'Get insured for a safe journey, protecting you from unforeseen events and travel disruptions.');
+            return _buildAdvertTitle();
+          } else {
+            final ad = adverts[index - 3];
+            return _adTile(ad.imageUrl, ad.title, ad.description, ad.linkUrl);
           }
-          return const SizedBox.shrink();
         },
       ),
     );
   }
 
-  Widget _adTile(String imagePath, String title, String subtitle) {
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.blue.shade900,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.blue.shade800, Colors.blue.shade900],
+              ),
+            ),
+            accountName: Text(
+              'Okema Paul',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            accountEmail: Text(
+              'okema@gmail.com',
+              style: TextStyle(color: Colors.white.withOpacity(0.9)),
+            ),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: GestureDetector(
+                child: Text(
+                  'OP',
+                  style: TextStyle(
+                    fontSize: 24,
+                    color: Colors.blue.shade900,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const EditProfilePage()),
+                  );
+                },
+              ),
+            ),
+          ),
+          _drawerItem(Icons.person, 'Profile', () => Navigator.pop(context)),
+          _drawerItem(Icons.book, 'My Bookings', () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BookingsPage()),
+            );
+          }),
+          const Divider(),
+          _drawerItem(Icons.settings, 'Settings', () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsPage()),
+            );
+          }),
+          _drawerItem(Icons.language, 'Language', () {}),
+          ListTile(
+            leading: const Icon(Icons.dark_mode),
+            title: const Text('Dark Mode'),
+            trailing: Switch(
+              value: true,
+              onChanged: (value) {},
+            ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Log Out', style: TextStyle(color: Colors.red)),
+            onTap: () async {
+              final result = await _authService.logoutUser();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(result['message'])),
+              );
+              if (result['success']) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SignInScreen()),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerItem(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildCarousel() {
     return Column(
-      // Direct Column structure, removed Padding
+      children: [
+        const SizedBox(height: 10),
+        CarouselSlider(
+          items: my_images,
+          options: CarouselOptions(
+            onPageChanged: (index, reason) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            height: 200,
+            autoPlay: true,
+            viewportFraction: 0.9,
+            enlargeCenterPage: true,
+            enableInfiniteScroll: true,
+            autoPlayInterval: const Duration(seconds: 4),
+            autoPlayAnimationDuration: const Duration(milliseconds: 800),
+            autoPlayCurve: Curves.fastOutSlowIn,
+          ),
+        ),
+        const SizedBox(height: 10),
+        AnimatedSmoothIndicator(
+          activeIndex: _currentIndex,
+          count: my_images.length,
+          effect: ExpandingDotsEffect(
+            dotHeight: 8,
+            dotWidth: 8,
+            activeDotColor: Colors.blue.shade900,
+            dotColor: Colors.grey.shade400,
+            expansionFactor: 2.0,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServices() {
+    return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0), // Added padding for individual list items
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            children: [
+              Text(
+                'Services',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade900),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _serviceCard(Icons.access_alarm, 'Timely Arrival',
+                  Colors.amber.shade700),
+              _serviceCard(Icons.directions_bus, 'Comfy Rides',
+                  Colors.green.shade700),
+              _serviceCard(Icons.security, 'Safe Travel', Colors.red.shade700),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdvertTitle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        children: [
+          Text(
+            'Advertisements',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade900),
+          ),
+        ],
+      ),
+    );
+  }
+
+ Widget _adTile(String imageUrl, String title, String subtitle, [String? linkUrl]) {
+  return InkWell(
+    onTap: linkUrl != null && linkUrl.isNotEmpty
+        ? () async {
+            final Uri url = Uri.parse(linkUrl);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.platformDefault);
+              } else {
+                print('Could not launch $linkUrl');
+              }
+          }
+        : null,
+    child: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -433,7 +435,7 @@ class _HomePageState extends State<HomePage> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   image: DecorationImage(
-                    image: AssetImage(imagePath),
+                    image: NetworkImage(imageUrl),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -446,9 +448,10 @@ class _HomePageState extends State<HomePage> {
                     Text(
                       title,
                       style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -463,19 +466,20 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-        const Divider(height: 1), // Add a divider below each ad tile
+        const Divider(height: 1),
       ],
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _serviceCard(IconData icon, String title, Color color) {
     return Expanded(
       child: Column(
-        // Replaced Card with Column
         children: [
           Container(
-            width: 60, // Icon container size remains
-            height: 60, // Icon container size remains
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
@@ -489,17 +493,16 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Icon(icon, size: 30, color: Colors.white),
           ),
-          const SizedBox(height: 8), // Adjusted spacing
+          const SizedBox(height: 8),
           Text(
             title,
-            textAlign:
-                TextAlign.center, // Keep center alignment for consistency
+            textAlign: TextAlign.center,
             style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: Colors.black87), // Font size remains
-            maxLines: 1, // Ensure single line
-            overflow: TextOverflow.ellipsis, // Add ellipsis if overflow
+                color: Colors.black87),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

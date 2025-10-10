@@ -36,6 +36,10 @@ urlpatterns = [
     # Dashboards
     path('company/', include('companies.urls')),
     path('admin/', include('accounts.admin_urls')),
+    
+    
+    path('api/adverts/', views.adverts_list, name='api_adverts'),
+
 
 
 ]
@@ -44,3 +48,9 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

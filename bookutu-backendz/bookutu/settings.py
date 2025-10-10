@@ -153,6 +153,9 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
 
+ALLOWED_HOSTS = ['*']
+
+
 # API Documentation
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Bookutu API',
