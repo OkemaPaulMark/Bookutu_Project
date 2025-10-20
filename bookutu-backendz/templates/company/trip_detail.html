@@ -143,6 +143,21 @@
                     </div>
                     {% endif %}
                 </div>
+
+                <div class="mt-4">
+                    <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="assign_driver" />
+                        <div class="md:col-span-2">
+                            {{ assign_driver_form.driver }}
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-user-check mr-2"></i>Assign Driver
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- Booking Summary -->
@@ -242,6 +257,59 @@
                     </button>
                     {% endif %}
                 </div>
+            </div>
+
+            <!-- Create Booking -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Create Booking</h3>
+                <form method="post" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_booking" />
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Trip</label>
+                        {{ direct_booking_form.trip }}
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Seat</label>
+                        {{ direct_booking_form.seat }}
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Passenger Name</label>
+                        {{ direct_booking_form.passenger_name }}
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Passenger Phone</label>
+                        {{ direct_booking_form.passenger_phone }}
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Passenger Email</label>
+                        {{ direct_booking_form.passenger_email }}
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Base Fare</label>
+                            {{ direct_booking_form.base_fare }}
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Seat Fee</label>
+                            {{ direct_booking_form.seat_fee }}
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Service Fee</label>
+                            {{ direct_booking_form.service_fee }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Total Amount</label>
+                        {{ direct_booking_form.total_amount }}
+                    </div>
+                    <div class="hidden">
+                        {{ direct_booking_form.source }}
+                    </div>
+                    <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        <i class="fas fa-ticket-alt mr-2"></i>Create Booking
+                    </button>
+                </form>
             </div>
 
             <!-- Trip Statistics -->

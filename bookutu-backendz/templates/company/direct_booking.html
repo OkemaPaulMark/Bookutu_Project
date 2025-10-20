@@ -1,0 +1,789 @@
+{% extends "company/base.html" %}
+{% load static %}
+
+{% block title %}Direct Booking - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .seat {
+        width: 50px;
+        height: 50px;
+        border: 2px solid #cbd5e0;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    
+    .seat:hover:not(.seat-booked):not(.seat-reserved) {
+        border-color: #3b82f6;
+        background-color: #dbeafe;
+        transform: scale(1.05);
+    }
+    
+    .seat-available {
+        background-color: #f0fdf4;
+        border-color: #86efac;
+        color: #166534;
+    }
+    
+    .seat-selected {
+        background-color: #3b82f6;
+        border-color: #2563eb;
+        color: white;
+        transform: scale(1.05);
+    }
+    
+    .seat-booked {
+        background-color: #fee2e2;
+        border-color: #fca5a5;
+        color: #991b1b;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    .seat-reserved {
+        background-color: #fef3c7;
+        border-color: #fde047;
+        color: #854d0e;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    
+    .seat-vip {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde047 100%);
+        border-color: #eab308;
+    }
+    
+    .seat-premium {
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        border-color: #6366f1;
+    }
+    
+    .bus-layout {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .step-active {
+        background-color: #3b82f6;
+        color: white;
+    }
+    
+    .step-completed {
+        background-color: #10b981;
+        color: white;
+    }
+    
+    .step-inactive {
+        background-color: #e5e7eb;
+        color: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Direct Booking</h1>
+        <p class="text-gray-600 mt-2">Create a new booking for your passengers</p>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="mb-8">
+        <div class="flex items-center justify-center space-x-4">
+            <div class="flex items-center">
+                <div id="step-1-indicator" class="w-10 h-10 rounded-full flex items-center justify-center step-active font-semibold">1</div>
+                <span class="ml-2 font-medium">Select Route & Trip</span>
+            </div>
+            <div class="w-16 h-1 bg-gray-300"></div>
+            <div class="flex items-center">
+                <div id="step-2-indicator" class="w-10 h-10 rounded-full flex items-center justify-center step-inactive font-semibold">2</div>
+                <span class="ml-2 font-medium text-gray-500">Select Seat</span>
+            </div>
+            <div class="w-16 h-1 bg-gray-300"></div>
+            <div class="flex items-center">
+                <div id="step-3-indicator" class="w-10 h-10 rounded-full flex items-center justify-center step-inactive font-semibold">3</div>
+                <span class="ml-2 font-medium text-gray-500">Passenger Details</span>
+            </div>
+            <div class="w-16 h-1 bg-gray-300"></div>
+            <div class="flex items-center">
+                <div id="step-4-indicator" class="w-10 h-10 rounded-full flex items-center justify-center step-inactive font-semibold">4</div>
+                <span class="ml-2 font-medium text-gray-500">Confirm</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 1: Route & Trip Selection -->
+    <div id="step-1" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Step 1: Select Route & Trip</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Route</label>
+                <select id="route-select" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Select a route</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Departure Date</label>
+                <input type="date" id="departure-date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="{{ today|date:'Y-m-d' }}">
+            </div>
+        </div>
+
+        <div id="trips-container" class="mt-6 hidden">
+            <h3 class="text-lg font-semibold mb-3">Available Trips</h3>
+            <div id="trips-list" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- Step 2: Seat Selection -->
+    <div id="step-2" class="bg-white rounded-xl shadow-sm p-6 mb-6 hidden">
+        <h2 class="text-xl font-semibold mb-4">Step 2: Select Seat</h2>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Bus Layout -->
+            <div class="lg:col-span-2">
+                <div class="bus-layout">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-900">Bus: <span id="bus-registration"></span></h3>
+                        <div class="flex items-center space-x-4 text-sm">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-green-100 border-2 border-green-400 rounded mr-2"></div>
+                                <span>Available</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-blue-600 border-2 border-blue-700 rounded mr-2"></div>
+                                <span>Selected</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-red-100 border-2 border-red-400 rounded mr-2"></div>
+                                <span>Booked</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Driver indicator -->
+                    <div class="flex justify-end mb-4">
+                        <div class="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center text-white">
+                            <i class="fas fa-steering-wheel text-2xl"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Seats grid -->
+                    <div id="seats-grid" class="space-y-3"></div>
+                </div>
+            </div>
+            
+            <!-- Selection Summary -->
+            <div>
+                <div class="bg-gray-50 rounded-lg p-4 sticky top-4">
+                    <h3 class="font-semibold mb-3">Selection Summary</h3>
+                    <div id="selected-seat-info" class="text-gray-500 text-sm">
+                        No seat selected
+                    </div>
+                    
+                    <div id="fare-details" class="mt-4 pt-4 border-t hidden">
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Base Fare</span>
+                                <span class="font-medium" id="base-fare-display">UGX 0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Seat Fee</span>
+                                <span class="font-medium" id="seat-fee-display">UGX 0</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-bold pt-2 border-t">
+                                <span>Total</span>
+                                <span class="text-blue-600" id="total-fare-display">UGX 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="proceed-to-passenger" class="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                        Proceed to Passenger Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Passenger Details -->
+    <div id="step-3" class="bg-white rounded-xl shadow-sm p-6 mb-6 hidden">
+        <h2 class="text-xl font-semibold mb-4">Step 3: Passenger Details</h2>
+        
+        <form id="passenger-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                <input type="text" id="passenger-name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter full name">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                <input type="tel" id="passenger-phone" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., 0700000000">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email (Optional)</label>
+                <input type="email" id="passenger-email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="email@example.com">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ID Number (Optional)</label>
+                <input type="text" id="passenger-id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="National ID or Passport">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method *</label>
+                <select id="payment-method" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Select payment method</option>
+                    <option value="CASH">Cash</option>
+                    <option value="MOBILE_MONEY">Mobile Money</option>
+                    <option value="CARD">Card</option>
+                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                    <option value="WALLET">Wallet</option>
+                </select>
+            </div>
+            <div id="mm-fields" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Mobile Money Details</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="mobile-money-number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="07XXXXXXXX">
+                    <select id="mobile-money-provider" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select provider</option>
+                        <option value="MTN">MTN</option>
+                        <option value="AIRTEL">Airtel</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="md:col-span-2 flex space-x-4">
+                <button type="button" id="back-to-seats" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </button>
+                <button type="submit" class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Proceed to Confirmation
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Step 4: Confirmation -->
+    <div id="step-4" class="bg-white rounded-xl shadow-sm p-6 mb-6 hidden">
+        <h2 class="text-xl font-semibold mb-4">Step 4: Confirm Booking</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <h3 class="font-semibold text-gray-900">Trip Details</h3>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Route</span>
+                        <span class="font-medium" id="confirm-route"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Date</span>
+                        <span class="font-medium" id="confirm-date"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Departure</span>
+                        <span class="font-medium" id="confirm-time"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Seat</span>
+                        <span class="font-medium" id="confirm-seat"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <h3 class="font-semibold text-gray-900">Passenger Details</h3>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Name</span>
+                        <span class="font-medium" id="confirm-passenger-name"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Phone</span>
+                        <span class="font-medium" id="confirm-passenger-phone"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Email</span>
+                        <span class="font-medium" id="confirm-passenger-email"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Payment Method</span>
+                        <span class="font-medium" id="confirm-payment-method"></span>
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                    <h4 class="font-semibold mb-2">Payment Summary</h4>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Base Fare</span>
+                            <span id="confirm-base-fare"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Seat Fee</span>
+                            <span id="confirm-seat-fee"></span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold pt-2 border-t border-blue-300">
+                            <span>Total</span>
+                            <span class="text-blue-600" id="confirm-total"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex space-x-4">
+            <button type="button" id="back-to-passenger" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                <i class="fas fa-arrow-left mr-2"></i>Back
+            </button>
+            <button type="button" id="confirm-booking" class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                <i class="fas fa-check mr-2"></i>Confirm & Create Booking
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-8 max-w-md mx-4">
+        <div class="text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold mb-2">Booking Created!</h3>
+            <p class="text-gray-600 mb-4">Booking reference: <span id="booking-reference" class="font-mono font-bold"></span></p>
+            <div class="space-y-2">
+                <button onclick="window.location.reload()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Create Another Booking
+                </button>
+                <a href="{% url 'company:bookings' %}" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 block text-center">
+                    View All Bookings
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let bookingState = {
+    step: 1,
+    route: null,
+    trip: null,
+    seat: null,
+    passenger: {},
+    baseFare: 0,
+    seatFee: 0,
+    totalFare: 0
+};
+
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// Load routes on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadRoutes();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    document.getElementById('route-select').addEventListener('change', function() {
+        if (this.value && document.getElementById('departure-date').value) {
+            loadTrips();
+        }
+    });
+    
+    document.getElementById('departure-date').addEventListener('change', function() {
+        if (this.value && document.getElementById('route-select').value) {
+            loadTrips();
+        }
+    });
+    
+    document.getElementById('proceed-to-passenger').addEventListener('click', function() {
+        goToStep(3);
+    });
+    
+    document.getElementById('back-to-seats').addEventListener('click', function() {
+        goToStep(2);
+    });
+    
+    document.getElementById('back-to-passenger').addEventListener('click', function() {
+        goToStep(3);
+    });
+    
+    document.getElementById('passenger-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        collectPassengerDetails();
+        goToStep(4);
+        displayConfirmation();
+    });
+    document.getElementById('payment-method').addEventListener('change', function() {
+        const mmFields = document.getElementById('mm-fields');
+        const mmNumber = document.getElementById('mobile-money-number');
+        const mmProvider = document.getElementById('mobile-money-provider');
+        if (this.value === 'MOBILE_MONEY') {
+            mmFields.classList.remove('hidden');
+            mmNumber.setAttribute('required', 'required');
+            mmProvider.setAttribute('required', 'required');
+        } else {
+            mmFields.classList.add('hidden');
+            mmNumber.removeAttribute('required');
+            mmProvider.removeAttribute('required');
+        }
+    });
+    
+    document.getElementById('confirm-booking').addEventListener('click', createBooking);
+}
+
+async function loadRoutes() {
+    try {
+        const response = await fetch('/api/v1/bookings/direct/routes/', {
+            headers: {'X-CSRFToken': csrftoken},
+            credentials: 'same-origin'
+        });
+        
+        // Check if we got HTML instead of JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+            console.error('Got HTML response - authentication issue');
+            alert('Please log in first. Redirecting to login page...');
+            window.location.href = '/accounts/login/';
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        const select = document.getElementById('route-select');
+        data.routes.forEach(route => {
+            const option = document.createElement('option');
+            option.value = route.id;
+            option.textContent = route.route_display;
+            option.dataset.baseFare = route.base_fare;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading routes:', error);
+        alert('Failed to load routes. Please refresh the page or contact support.');
+    }
+}
+
+async function loadTrips() {
+    const routeId = document.getElementById('route-select').value;
+    const departureDate = document.getElementById('departure-date').value;
+    
+    // Validate inputs
+    if (!routeId) {
+        alert('Please select a route first.');
+        return;
+    }
+    
+    if (!departureDate) {
+        alert('Please select a departure date.');
+        return;
+    }
+    
+    try {
+        const url = `/api/v1/bookings/direct/trips/?route_id=${routeId}&departure_date=${departureDate}`;
+        console.log('Fetching trips from:', url);
+        
+        const response = await fetch(url, {
+            headers: {'X-CSRFToken': csrftoken},
+            credentials: 'same-origin'  // Include session cookie
+        });
+        
+        // Check if we got HTML instead of JSON (likely auth redirect)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+            console.error('Got HTML response instead of JSON - likely authentication issue');
+            alert('Authentication error. Please refresh the page and log in again.');
+            window.location.reload();
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Server error:', errorData);
+            throw new Error(errorData.error || 'Server error');
+        }
+        
+        const data = await response.json();
+        console.log('Trips data:', data);
+        
+        const container = document.getElementById('trips-container');
+        const tripsList = document.getElementById('trips-list');
+        tripsList.innerHTML = '';
+        
+        if (data.trips.length === 0) {
+            tripsList.innerHTML = '<p class="text-gray-500">No trips available for this route and date.</p>';
+        } else {
+            data.trips.forEach(trip => {
+                const tripCard = createTripCard(trip);
+                tripsList.appendChild(tripCard);
+            });
+        }
+        
+        container.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading trips:', error);
+        alert('Failed to load trips: ' + error.message);
+    }
+}
+
+function createTripCard(trip) {
+    const div = document.createElement('div');
+    div.className = 'border border-gray-200 rounded-lg p-4 hover:border-blue-500 cursor-pointer transition';
+    div.onclick = () => selectTrip(trip);
+    
+    div.innerHTML = `
+        <div class="flex justify-between items-start">
+            <div>
+                <h4 class="font-semibold text-gray-900">${trip.departure_time} - ${trip.arrival_time}</h4>
+                <p class="text-sm text-gray-600">${trip.bus_registration} • ${trip.bus_type}</p>
+            </div>
+            <div class="text-right">
+                <p class="font-bold text-blue-600">UGX ${trip.base_fare.toLocaleString()}</p>
+                <p class="text-sm text-gray-600">${trip.available_seats} seats left</p>
+            </div>
+        </div>
+        <div class="mt-2 flex space-x-2 text-xs text-gray-500">
+            ${trip.features.has_ac ? '<span class="px-2 py-1 bg-blue-50 rounded">AC</span>' : ''}
+            ${trip.features.has_wifi ? '<span class="px-2 py-1 bg-blue-50 rounded">WiFi</span>' : ''}
+            ${trip.features.has_charging_ports ? '<span class="px-2 py-1 bg-blue-50 rounded">Charging</span>' : ''}
+        </div>
+    `;
+    
+    return div;
+}
+
+async function selectTrip(trip) {
+    bookingState.trip = trip;
+    bookingState.baseFare = trip.base_fare;
+    
+    // Load seats for this trip
+    await loadSeats(trip.id);
+    
+    goToStep(2);
+}
+
+async function loadSeats(tripId) {
+    try {
+        const response = await fetch(`/api/v1/bookings/direct/trips/${tripId}/seats/`, {
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        document.getElementById('bus-registration').textContent = data.bus_registration;
+        
+        const seatsGrid = document.getElementById('seats-grid');
+        seatsGrid.innerHTML = '';
+        
+        // Group seats by row
+        const rows = {};
+        data.seats.forEach(seat => {
+            if (!rows[seat.row_number]) {
+                rows[seat.row_number] = [];
+            }
+            rows[seat.row_number].push(seat);
+        });
+        
+        // Create seat layout
+        Object.keys(rows).sort((a, b) => a - b).forEach(rowNum => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'flex justify-center space-x-2';
+            
+            rows[rowNum].forEach((seat, index) => {
+                const seatDiv = document.createElement('div');
+                seatDiv.className = `seat seat-${seat.status}`;
+                seatDiv.textContent = seat.seat_number;
+                seatDiv.dataset.seatId = seat.id;
+                seatDiv.dataset.seatNumber = seat.seat_number;
+                seatDiv.dataset.price = seat.price;
+                seatDiv.dataset.priceMultiplier = seat.price_multiplier;
+                
+                if (seat.status === 'available') {
+                    seatDiv.onclick = () => selectSeat(seat);
+                }
+                
+                // Add aisle gap
+                if (index === 1) {
+                    const aisle = document.createElement('div');
+                    aisle.className = 'w-8';
+                    rowDiv.appendChild(aisle);
+                }
+                
+                rowDiv.appendChild(seatDiv);
+            });
+            
+            seatsGrid.appendChild(rowDiv);
+        });
+    } catch (error) {
+        console.error('Error loading seats:', error);
+        alert('Failed to load seats. Please try again or select a different trip.');
+    }
+}
+
+function selectSeat(seat) {
+    // Deselect previous seat
+    document.querySelectorAll('.seat-selected').forEach(s => {
+        s.classList.remove('seat-selected');
+        s.classList.add('seat-available');
+    });
+    
+    // Select new seat
+    const seatDiv = document.querySelector(`[data-seat-id="${seat.id}"]`);
+    seatDiv.classList.remove('seat-available');
+    seatDiv.classList.add('seat-selected');
+    
+    bookingState.seat = seat;
+    bookingState.seatFee = seat.price - bookingState.baseFare;
+    bookingState.totalFare = seat.price;
+    
+    // Update summary
+    document.getElementById('selected-seat-info').innerHTML = `
+        <div class="font-medium text-gray-900">Seat ${seat.seat_number}</div>
+        <div class="text-xs text-gray-500 mt-1">${seat.seat_type}</div>
+    `;
+    
+    document.getElementById('base-fare-display').textContent = `UGX ${bookingState.baseFare.toLocaleString()}`;
+    document.getElementById('seat-fee-display').textContent = `UGX ${bookingState.seatFee.toLocaleString()}`;
+    document.getElementById('total-fare-display').textContent = `UGX ${bookingState.totalFare.toLocaleString()}`;
+    
+    document.getElementById('fare-details').classList.remove('hidden');
+    document.getElementById('proceed-to-passenger').disabled = false;
+}
+
+function collectPassengerDetails() {
+    bookingState.passenger = {
+        name: document.getElementById('passenger-name').value,
+        phone: document.getElementById('passenger-phone').value,
+        email: document.getElementById('passenger-email').value || '',
+        id_number: document.getElementById('passenger-id').value || '',
+        payment_method: document.getElementById('payment-method').value,
+        mobile_money_number: document.getElementById('mobile-money-number').value || '',
+        mobile_money_provider: document.getElementById('mobile-money-provider').value || ''
+    };
+}
+
+function displayConfirmation() {
+    const routeSelect = document.getElementById('route-select');
+    const selectedRoute = routeSelect.options[routeSelect.selectedIndex].text;
+    
+    document.getElementById('confirm-route').textContent = selectedRoute;
+    document.getElementById('confirm-date').textContent = document.getElementById('departure-date').value;
+    document.getElementById('confirm-time').textContent = bookingState.trip.departure_time;
+    document.getElementById('confirm-seat').textContent = bookingState.seat.seat_number;
+    
+    document.getElementById('confirm-passenger-name').textContent = bookingState.passenger.name;
+    document.getElementById('confirm-passenger-phone').textContent = bookingState.passenger.phone;
+    document.getElementById('confirm-passenger-email').textContent = bookingState.passenger.email || 'N/A';
+    document.getElementById('confirm-payment-method').textContent = bookingState.passenger.payment_method || 'N/A';
+    
+    document.getElementById('confirm-base-fare').textContent = `UGX ${bookingState.baseFare.toLocaleString()}`;
+    document.getElementById('confirm-seat-fee').textContent = `UGX ${bookingState.seatFee.toLocaleString()}`;
+    document.getElementById('confirm-total').textContent = `UGX ${bookingState.totalFare.toLocaleString()}`;
+}
+
+async function createBooking() {
+    const button = document.getElementById('confirm-booking');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+    
+    try {
+        const response = await fetch('/api/v1/bookings/direct/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                trip: bookingState.trip.id,
+                seat: bookingState.seat.id,
+                passenger_name: bookingState.passenger.name,
+                passenger_phone: bookingState.passenger.phone,
+                passenger_email: bookingState.passenger.email,
+                payment_method: bookingState.passenger.payment_method,
+                mobile_money_number: bookingState.passenger.mobile_money_number,
+                mobile_money_provider: bookingState.passenger.mobile_money_provider
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('booking-reference').textContent = data.booking_reference;
+            document.getElementById('success-modal').classList.remove('hidden');
+            document.getElementById('success-modal').classList.add('flex');
+            
+            // Redirect to create booking page after 3 seconds
+            setTimeout(() => {
+                window.location.href = '/company/bookings/create/';
+            }, 3000);
+        } else {
+            console.error('Booking API error:', data);
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-check mr-2"></i>Confirm & Create Booking';
+        }
+    } catch (error) {
+        console.error('Error creating booking:', error);
+        alert('Error creating booking. Please try again.');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-check mr-2"></i>Confirm & Create Booking';
+    }
+}
+
+function goToStep(step) {
+    // Hide all steps
+    for (let i = 1; i <= 4; i++) {
+        document.getElementById(`step-${i}`).classList.add('hidden');
+        const indicator = document.getElementById(`step-${i}-indicator`);
+        indicator.classList.remove('step-active', 'step-completed');
+        indicator.classList.add('step-inactive');
+    }
+    
+    // Show current step
+    document.getElementById(`step-${step}`).classList.remove('hidden');
+    document.getElementById(`step-${step}-indicator`).classList.remove('step-inactive');
+    document.getElementById(`step-${step}-indicator`).classList.add('step-active');
+    
+    // Mark completed steps
+    for (let i = 1; i < step; i++) {
+        const indicator = document.getElementById(`step-${i}-indicator`);
+        indicator.classList.remove('step-inactive', 'step-active');
+        indicator.classList.add('step-completed');
+    }
+    
+    bookingState.step = step;
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+{% endblock %}
