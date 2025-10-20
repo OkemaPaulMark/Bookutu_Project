@@ -29,19 +29,19 @@ class MobileBookingAPITests(TestCase):
             registration_number="REG123",
             license_number="LIC123",
         )
-        # User (must be company staff per current User model)
+        # User (passenger for bookings - not staff)
         self.user = User.objects.create_user(
-            email="user@example.com",
+            email="passenger@example.com",
             password="pass1234",
             first_name="Test",
-            last_name="User",
+            last_name="Passenger",
             phone_number="0700000001",
-            user_type="COMPANY_STAFF",
-            company=self.company,
+            user_type="",  # Empty user_type for passenger (not staff)
         )
+        # Authenticate the user for booking
         self.client.force_authenticate(user=self.user)
 
-        # Bus and seats
+        # Bus and seats (seats are auto-created by Bus.save())
         self.bus = Bus.objects.create(
             company=self.company,
             license_plate="UAA000A",
@@ -50,19 +50,12 @@ class MobileBookingAPITests(TestCase):
             year=2020,
             total_seats=4,
         )
-        # Create 4 seats (2x2)
-        self.seat1 = BusSeat.objects.create(
-            bus=self.bus, seat_number="1A", row_number=1, seat_position="LEFT"
-        )
-        self.seat2 = BusSeat.objects.create(
-            bus=self.bus, seat_number="1B", row_number=1, seat_position="RIGHT"
-        )
-        self.seat3 = BusSeat.objects.create(
-            bus=self.bus, seat_number="2A", row_number=2, seat_position="LEFT"
-        )
-        self.seat4 = BusSeat.objects.create(
-            bus=self.bus, seat_number="2B", row_number=2, seat_position="RIGHT"
-        )
+        # Get the auto-created seats
+        seats = list(self.bus.seats.all().order_by("row_number", "seat_position"))
+        self.seat1 = seats[0]  # Row 1, LEFT_WINDOW
+        self.seat2 = seats[1]  # Row 1, LEFT_AISLE
+        self.seat3 = seats[2]  # Row 1, RIGHT_AISLE
+        self.seat4 = seats[3]  # Row 1, RIGHT_WINDOW
 
         # Route and trip (future date)
         self.route = Route.objects.create(
@@ -101,7 +94,7 @@ class MobileBookingAPITests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.content)
         data = res.json()["booking"]
         self.assertEqual(data["status"], "PENDING")
-        self.assertEqual(data["seat_info"]["seat_number"], "1A")
+        self.assertEqual(data["seat_info"]["seat_number"], self.seat1.seat_number)
         self.assertTrue(
             Booking.objects.filter(trip=self.trip, seat=self.seat1).exists()
         )
