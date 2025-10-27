@@ -62,23 +62,22 @@ def mobile_register(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Create user (passenger users don't need company)
+    # Create user
     user = User.objects.create_user(
         email=data["email"],
         password=data["password"],
         first_name=data["first_name"],
         last_name=data["last_name"],
         phone_number=data["phone_number"],
-        user_type="",  # Empty user_type for passengers (not staff)
+        user_type="PASSENGER",
     )
 
-    # Create passenger profile with correct field names
+    # Create passenger profile
     PassengerProfile.objects.create(
         user=user,
         date_of_birth=data.get("date_of_birth"),
-        emergency_contact_name=data.get("emergency_contact"),
-        emergency_contact_phone=data.get("emergency_phone"),
-        gender=data.get("gender"),
+        emergency_contact=data.get("emergency_contact"),
+        emergency_phone=data.get("emergency_phone"),
     )
 
     # Return user data
