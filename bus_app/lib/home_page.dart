@@ -101,7 +101,7 @@ class _HomePageState extends State<HomePage> {
     Future<void> fetchAdverts() async {
       try {
         final response = await http.get(
-          Uri.parse('http://10.10.134.137:8000/api/adverts/?all=true'), // use all=true
+          Uri.parse('http://192.168.100.19:8000/api/adverts/?all=true'), // use all=true
         );
 
         if (response.statusCode == 200) {

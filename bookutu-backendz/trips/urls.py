@@ -1,8 +1,10 @@
-from django.urls import path
+from django.urls import path #type:ignore
 from .views import (
     RouteListCreateView, RouteDetailView, TripListCreateView, TripDetailView,
     TripManifestView, trip_dashboard_stats
 )
+from .views import TripListCreateAPIView, PublicTripListAPIView
+
 
 urlpatterns = [
     # Route Management
@@ -16,4 +18,10 @@ urlpatterns = [
     
     # Dashboard
     path('dashboard/stats/', trip_dashboard_stats, name='trip_dashboard_stats'),
+    
+        # Company-side API
+    path('manage/', TripListCreateAPIView.as_view(), name='trip_manage'),
+
+    # Public API for Flutter
+    path('public/', PublicTripListAPIView.as_view(), name='trip_public_list')
 ]
