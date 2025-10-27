@@ -229,3 +229,4 @@ The group project [`Bookutu_Project`](https://github.com/OkemaPaulMark/Bookutu_P
 1. Keep `integrate/group-project` as the working branch for compatibility work.
 2. To update the vendored code: `git subtree pull --prefix=external/Bookutu_Project group master --squash`.
 3. Port additional endpoints by adapting views/serializers in `group_compat` to local models.
+

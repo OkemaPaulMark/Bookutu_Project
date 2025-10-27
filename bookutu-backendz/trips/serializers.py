@@ -14,6 +14,7 @@ class RouteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Route
+<<<<<<< Updated upstream
         fields = (
             "id",
             "name",
@@ -32,6 +33,14 @@ class RouteSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_at", "total_trips", "upcoming_trips")
 
+=======
+        fields = ('id', 'name', 'origin_city', 'origin_terminal', 'destination_city',
+                  'destination_terminal', 'distance_km', 'estimated_duration_hours',
+                  'base_fare', 'is_active', 'intermediate_stops', 'created_at',
+                  'total_trips', 'upcoming_trips')
+        read_only_fields = ('id', 'created_at', 'total_trips', 'upcoming_trips')
+    
+>>>>>>> Stashed changes
     def get_total_trips(self, obj):
         return obj.trips.count()
 
@@ -41,6 +50,7 @@ class RouteSerializer(serializers.ModelSerializer):
         ).count()
 
 
+<<<<<<< Updated upstream
 class TripSerializer(serializers.ModelSerializer):
     """
     Trip serializer for trip management
@@ -113,6 +123,8 @@ class TripSerializer(serializers.ModelSerializer):
         return attrs
 
 
+=======
+>>>>>>> Stashed changes
 class TripPricingSerializer(serializers.ModelSerializer):
     """
     Trip pricing serializer
@@ -122,6 +134,7 @@ class TripPricingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TripPricing
+<<<<<<< Updated upstream
         fields = (
             "peak_season_multiplier",
             "demand_multiplier",
@@ -129,6 +142,27 @@ class TripPricingSerializer(serializers.ModelSerializer):
             "final_base_fare",
             "early_bird_days",
         )
+=======
+        fields = ('peak_season_multiplier', 'demand_multiplier', 'early_bird_discount',
+                  'final_base_fare', 'early_bird_days')
+
+
+class TripSerializer(serializers.ModelSerializer):
+    """
+    Full Trip serializer for internal management (Admin, staff)
+    """
+    route_name = serializers.CharField(source='route.name', read_only=True)
+    bus_numberplate = serializers.CharField(source='bus.registration_number', read_only=True)
+
+    class Meta:
+        model = Trip
+        fields = [
+            'id', 'route', 'route_name', 'bus', 'bus_numberplate', 'departure_date',
+            'departure_time', 'arrival_time', 'base_fare', 'status', 'available_seats',
+            'booked_seats', 'driver_name', 'driver_phone', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'available_seats', 'booked_seats']
+>>>>>>> Stashed changes
 
 
 class TripManifestSerializer(serializers.Serializer):
@@ -141,3 +175,16 @@ class TripManifestSerializer(serializers.Serializer):
     passengers = serializers.ListField(child=serializers.DictField())
     total_passengers = serializers.IntegerField()
     total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class TripPublicSerializer(serializers.ModelSerializer):
+    """
+    Public serializer for Flutter app (GET endpoint)
+    """
+    route_name = serializers.CharField(source='route.name', read_only=True)
+    bus_numberplate = serializers.CharField(source='bus.registration_number', read_only=True)
+    capacity = serializers.IntegerField(source='bus.total_seats', read_only=True)
+
+    class Meta:
+        model = Trip
+        fields = ['id', 'route_name', 'departure_time', 'base_fare', 'bus_numberplate', 'capacity']
