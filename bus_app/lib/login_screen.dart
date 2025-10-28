@@ -12,7 +12,7 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -21,7 +21,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -30,11 +30,11 @@ class _SignInScreenState extends State<SignInScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        final username = _usernameController.text.trim();
+        final email = _emailController.text.trim();
         final password = _passwordController.text.trim();
 
         final response = await _authService.loginUser(
-          username: username,
+          email: email,
           password: password,
         );
 
@@ -101,10 +101,10 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   children: [
                     TextFormField(
-                      controller: _usernameController,
+                      controller: _emailController,
                       decoration: InputDecoration(
-                        labelText: 'Username',
-                        hintText: 'Enter your username',
+                        labelText: 'Email',
+                        hintText: 'Enter your email',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
                               12), // Rounded corners for input
@@ -120,10 +120,10 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your username';
+                          return 'Please enter your email';
                         }
-                        if (value.length < 4) {
-                          return 'Username must be at least 4 characters';
+                        if (!value.contains('@')) {
+                          return 'Please enter a valid email address';
                         }
                         return null;
                       },

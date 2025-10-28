@@ -168,6 +168,17 @@ class Trip(models.Model):
             )
             raise ValidationError("Route must belong to the same company as the trip")
 
+        # Validate driver exists in company drivers
+        if self.driver_name and self.company:
+            from companies.models import Driver
+            company_drivers = Driver.objects.filter(company=self.company)
+            driver_matches = company_drivers.filter(
+                first_name__icontains=self.driver_name.split()[0] if self.driver_name.split() else '',
+                phone_number=self.driver_phone
+            )
+            if not driver_matches.exists():
+                logger.warning(f"Driver {self.driver_name} ({self.driver_phone}) not found in company {self.company} drivers. Consider creating the driver record.")
+
         # Check for bus scheduling conflicts
         if (
             self.bus
@@ -262,6 +273,8 @@ class Trip(models.Model):
             )
             logger.info(f"Created TripPricing for new trip {self}")
 
+        # Log alignment status
+        logger.info(f"Trip {self.id} alignment: Company={self.company}, Route={self.route.company}, Bus={self.bus.company}, Driver={self.driver_name}")
     @property
     def occupancy_percentage(self):
         if self.available_seats == 0:
