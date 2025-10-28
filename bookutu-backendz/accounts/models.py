@@ -11,11 +11,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     USER_TYPE_CHOICES = [
         ('COMPANY_STAFF', 'Company Staff'),
         ('SUPER_ADMIN', 'Super Admin'),
+        ('PASSENGER', 'Passenger'),
     ]
     
+    username = models.CharField(max_length=150, unique=True, blank=True, null=True)
     email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=30)
-    last_name = models.CharField(max_length=30)
+    first_name = models.CharField(max_length=30, blank=True)
+    last_name = models.CharField(max_length=30, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='COMPANY_STAFF')
     
@@ -36,8 +38,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     objects = UserManager()
     
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
     
     class Meta:
         db_table = 'accounts_user'
@@ -60,6 +62,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def is_super_admin(self):
         return self.user_type == 'SUPER_ADMIN'
+
+    def is_passenger(self):
+        return self.user_type == 'PASSENGER'
     
     def save(self, *args, **kwargs):
         # Validation: Company staff must have a company

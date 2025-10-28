@@ -20,6 +20,7 @@ from .serializers import (
     PasswordChangeSerializer, PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer, UserSessionSerializer
 )
+from api.serializers import MobileRegisterSerializer, MobileLoginSerializer
 from .permissions import IsOwnerOrReadOnly, IsSuperAdmin
 from .models import PasswordResetToken, UserSession
 from .forms import LoginForm, CompanyRegistrationForm
@@ -436,3 +437,35 @@ def user_dashboard_data(request):
         })
 
     return Response({'error': 'Invalid user type'}, status=status.HTTP_400_BAD_REQUEST)
+class MobileRegisterView(generics.CreateAPIView):
+    """
+    Mobile user registration endpoint
+    """
+    queryset = User.objects.all()
+    serializer_class = MobileRegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        return Response({
+            'message': 'User registered successfully.',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email,
+                'phone_number': user.phone_number,
+                'user_type': user.user_type,
+                'is_verified': user.is_verified
+            }
+        }, status=status.HTTP_201_CREATED)
+
+class MobileLoginView(TokenObtainPairView):
+    """
+    Mobile user login endpoint
+    """
+    serializer_class = MobileLoginSerializer

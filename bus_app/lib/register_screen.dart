@@ -14,10 +14,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
 
-  String username = '';
+  String firstName = '';
+  String lastName = '';
   String email = '';
+  String phoneNumber = '';
   String password = '';
   String confirmPassword = '';
+  String dateOfBirth = '';
+  String gender = '';
   String error = '';
   bool loading = false;
   bool _obscurePassword = true; // For password visibility toggle
@@ -31,10 +35,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       final result = await _authService.registerUser(
-        username: username,
+        firstName: firstName,
+        lastName: lastName,
         email: email,
+        phoneNumber: phoneNumber,
         password: password,
         confirmPassword: confirmPassword,
+        dateOfBirth: dateOfBirth.isNotEmpty ? dateOfBirth : null,
+        gender: gender.isNotEmpty ? gender : null,
       );
 
       setState(() {
@@ -97,24 +105,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'Username',
-                        hintText: 'Enter your username',
+                        labelText: 'First Name',
+                        hintText: 'Enter your first name',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(
-                              12), // Rounded corners for input
-                          borderSide: BorderSide.none, // Remove default border
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor:
-                            Colors.grey.shade100, // Light grey background
-                        prefixIcon:
-                            Icon(Icons.person, color: Colors.blue.shade700),
-                        contentPadding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 16),
+                        fillColor: Colors.grey.shade100,
+                        prefixIcon: Icon(Icons.person, color: Colors.blue.shade700),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                       ),
-                      validator: (val) =>
-                          val == null || val.isEmpty ? 'Enter username' : null,
-                      onChanged: (val) => setState(() => username = val),
+                      validator: (val) => val == null || val.isEmpty ? 'Enter first name' : null,
+                      onChanged: (val) => setState(() => firstName = val),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Last Name',
+                        hintText: 'Enter your last name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        prefixIcon: Icon(Icons.person_outline, color: Colors.blue.shade700),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      ),
+                      validator: (val) => val == null || val.isEmpty ? 'Enter last name' : null,
+                      onChanged: (val) => setState(() => lastName = val),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        hintText: 'Enter your phone number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        prefixIcon: Icon(Icons.phone, color: Colors.blue.shade700),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      ),
+                      validator: (val) => val == null || val.isEmpty ? 'Enter phone number' : null,
+                      onChanged: (val) => setState(() => phoneNumber = val),
                     ),
                     const SizedBox(height: 20),
                     TextFormField(

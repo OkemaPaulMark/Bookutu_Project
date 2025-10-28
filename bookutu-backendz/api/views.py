@@ -9,12 +9,42 @@ from rest_framework.decorators import api_view, permission_classes
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 
-from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer
+from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, MobileRegisterSerializer, MobileLoginSerializer
 from trips.models import Trip
 from trips.serializers import TripSerializer, TripPublicSerializer  
 from companies.models import Company, Bus
 
 User = get_user_model()
+
+class MobileRegisterView(APIView):
+    """
+    API endpoint for mobile app user registration
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = MobileRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({
+                "message": "User registered successfully",
+                "user": {
+                    "id": user.id,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "email": user.email,
+                    "phone_number": user.phone_number,
+                    "user_type": user.user_type,
+                    "is_verified": user.is_verified
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class MobileLoginView(TokenObtainPairView):
+    """
+    API endpoint for mobile app login
+    """
+    serializer_class = MobileLoginSerializer
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -31,6 +61,26 @@ class RegisterView(APIView):
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+class MobileLogoutView(APIView):
+    """
+    API endpoint for mobile app logout
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # For mobile logout, we don't need to blacklist tokens
+            # The client should discard the tokens on their side
+            return Response({
+                "success": True,
+                "message": "Logged out successfully."
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

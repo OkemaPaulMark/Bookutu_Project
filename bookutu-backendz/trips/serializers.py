@@ -14,7 +14,6 @@ class RouteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Route
-<<<<<<< Updated upstream
         fields = (
             "id",
             "name",
@@ -32,15 +31,6 @@ class RouteSerializer(serializers.ModelSerializer):
             "upcoming_trips",
         )
         read_only_fields = ("id", "created_at", "total_trips", "upcoming_trips")
-
-=======
-        fields = ('id', 'name', 'origin_city', 'origin_terminal', 'destination_city',
-                  'destination_terminal', 'distance_km', 'estimated_duration_hours',
-                  'base_fare', 'is_active', 'intermediate_stops', 'created_at',
-                  'total_trips', 'upcoming_trips')
-        read_only_fields = ('id', 'created_at', 'total_trips', 'upcoming_trips')
-    
->>>>>>> Stashed changes
     def get_total_trips(self, obj):
         return obj.trips.count()
 
@@ -50,16 +40,15 @@ class RouteSerializer(serializers.ModelSerializer):
         ).count()
 
 
-<<<<<<< Updated upstream
 class TripSerializer(serializers.ModelSerializer):
     """
     Trip serializer for trip management
     """
-
     route_name = serializers.CharField(source="route.name", read_only=True)
     bus_registration = serializers.CharField(
         source="bus.registration_number", read_only=True
     )
+    bus_image = serializers.ImageField(source='bus.image', read_only=True)
     driver_full_name = serializers.CharField(
         source="driver.get_full_name", read_only=True
     )
@@ -75,6 +64,7 @@ class TripSerializer(serializers.ModelSerializer):
             "route_name",
             "bus",
             "bus_registration",
+            "bus_image",
             "departure_date",
             "departure_time",
             "arrival_time",
@@ -104,7 +94,6 @@ class TripSerializer(serializers.ModelSerializer):
             "is_bookable",
             "driver_full_name",
         )
-
     def validate(self, attrs):
         # Ensure bus and route belong to the same company as the user
         request = self.context.get("request")
@@ -123,8 +112,6 @@ class TripSerializer(serializers.ModelSerializer):
         return attrs
 
 
-=======
->>>>>>> Stashed changes
 class TripPricingSerializer(serializers.ModelSerializer):
     """
     Trip pricing serializer
@@ -134,7 +121,6 @@ class TripPricingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TripPricing
-<<<<<<< Updated upstream
         fields = (
             "peak_season_multiplier",
             "demand_multiplier",
@@ -142,28 +128,6 @@ class TripPricingSerializer(serializers.ModelSerializer):
             "final_base_fare",
             "early_bird_days",
         )
-=======
-        fields = ('peak_season_multiplier', 'demand_multiplier', 'early_bird_discount',
-                  'final_base_fare', 'early_bird_days')
-
-
-class TripSerializer(serializers.ModelSerializer):
-    """
-    Full Trip serializer for internal management (Admin, staff)
-    """
-    route_name = serializers.CharField(source='route.name', read_only=True)
-    bus_numberplate = serializers.CharField(source='bus.registration_number', read_only=True)
-
-    class Meta:
-        model = Trip
-        fields = [
-            'id', 'route', 'route_name', 'bus', 'bus_numberplate', 'departure_date',
-            'departure_time', 'arrival_time', 'base_fare', 'status', 'available_seats',
-            'booked_seats', 'driver_name', 'driver_phone', 'created_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'available_seats', 'booked_seats']
->>>>>>> Stashed changes
-
 
 class TripManifestSerializer(serializers.Serializer):
     """

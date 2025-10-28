@@ -5,7 +5,7 @@ from .views import (
     UserProfileView, PasswordChangeView, PasswordResetRequestView,
     PasswordResetConfirmView, UserSessionsView, LogoutView, LogoutAllView,
     verify_email, user_dashboard_data, web_login, web_logout, DashboardRedirectView,
-    web_password_reset, company_register
+    web_password_reset, company_register, MobileRegisterView, MobileLoginView
 )
 
 urlpatterns = [
@@ -40,4 +40,10 @@ urlpatterns = [
 
     # Dashboard
     path('api/dashboard/', user_dashboard_data, name='user_dashboard'),
+    
+    
+    path('api/mobile/register/', MobileRegisterView.as_view(), name='mobile_register'),
+path('api/mobile/login/', MobileLoginView.as_view(), name='mobile_login'),
+    
+    
 ]
