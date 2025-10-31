@@ -33,8 +33,8 @@ urlpatterns = [
     # Adverts
     path('api/adverts/', views.adverts_list, name='api_adverts'),
 
-    # ✅ Mobile API for Flutter app
-    path('api/auth/', include('api.urls')),
+    # Mobile API for Flutter app
+    path('api/', include('api.urls')),
 ]
 
 # Serve static & media in development
