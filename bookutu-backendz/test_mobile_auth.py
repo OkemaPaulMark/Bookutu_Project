@@ -65,11 +65,11 @@ def test_mobile_login(credentials):
     url = f'{BASE_URL}/api/auth/login/'  # Adjust if your URL is different
     
     login_data = {
-        "username": credentials["username"],
+        "username": credentials["email"],  # Use email since USERNAME_FIELD is email
         "password": credentials["password"]
     }
     
-    print(f"\nTesting login with username: {credentials['username']}")
+    print(f"\nTesting login with email: {credentials['email']}")
     
     try:
         response = requests.post(url, json=login_data)
