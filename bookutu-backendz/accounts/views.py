@@ -55,6 +55,9 @@ def web_login(request):
                 return redirect('/accounts/login/')
         else:
             messages.error(request, 'Invalid email or password.')
+            # Debug: Print form errors
+            print(f"Login form errors: {form.errors}")
+            print(f"Login form non-field errors: {form.non_field_errors()}")
     else:
         form = LoginForm()
 

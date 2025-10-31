@@ -37,9 +37,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_login = models.DateTimeField(null=True, blank=True)
     
     objects = UserManager()
-    
-    USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['email']
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
     
     class Meta:
         db_table = 'accounts_user'

@@ -8,8 +8,8 @@ from django.db import transaction
 
 
 class LoginForm(AuthenticationForm):
-    username = forms.EmailField(
-        widget=forms.EmailInput(attrs={
+    username = forms.CharField(
+        widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors',
             'placeholder': 'Enter your email address',
             'required': True,

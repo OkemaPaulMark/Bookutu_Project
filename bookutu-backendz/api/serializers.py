@@ -67,28 +67,36 @@ class RegisterSerializer(serializers.ModelSerializer):
         return User.objects.create_user(**validated_data)
 
 
-class MobileLoginSerializer(TokenObtainPairSerializer):
+class MobileLoginSerializer(serializers.Serializer):
     """
     Custom JWT token serializer for mobile app login
     """
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+
     def validate(self, attrs):
-        # Allow login with username instead of email
         username = attrs.get("username")
         password = attrs.get("password")
 
         if username and password:
+            # Try to authenticate with the provided username (could be username or email)
             user = authenticate(username=username, password=password)
             if not user:
                 raise serializers.ValidationError({"non_field_errors": ["Invalid username or password."]})
             if not user.is_active:
                 raise serializers.ValidationError({"non_field_errors": ["User account is disabled."]})
-
-            # Set username for parent class (already set)
-            attrs['username'] = username
         else:
             raise serializers.ValidationError({"non_field_errors": ["Username and password are required."]})
 
-        data = super().validate(attrs)
+        # Get tokens
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh_token = RefreshToken.for_user(user)
+
+        # Return the token data
+        data = {
+            'refresh': str(refresh_token),
+            'access': str(refresh_token.access_token),
+        }
 
         # Add user info to response
         data["user"] = {
