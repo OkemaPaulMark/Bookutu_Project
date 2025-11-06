@@ -1,5 +1,5 @@
-import 'package:bus_app/main.dart';
 import 'package:flutter/material.dart';
+import 'main.dart';
 import 'services/auth_service.dart';
 import 'login_screen.dart'; // Import login_screen.dart for navigation
 
@@ -17,11 +17,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String firstName = '';
   String lastName = '';
   String email = '';
-  String phoneNumber = '';
   String password = '';
   String confirmPassword = '';
-  String dateOfBirth = '';
-  String gender = '';
   String error = '';
   bool loading = false;
   bool _obscurePassword = true; // For password visibility toggle
@@ -35,14 +32,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       final result = await _authService.registerUser(
-        firstName: firstName,
-        lastName: lastName,
+        username: '$firstName$lastName'.toLowerCase().replaceAll(' ', ''),
         email: email,
-        phoneNumber: phoneNumber,
         password: password,
         confirmPassword: confirmPassword,
-        dateOfBirth: dateOfBirth.isNotEmpty ? dateOfBirth : null,
-        gender: gender.isNotEmpty ? gender : null,
       );
 
       setState(() {
@@ -137,23 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onChanged: (val) => setState(() => lastName = val),
                     ),
                     const SizedBox(height: 20),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        hintText: 'Enter your phone number',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        prefixIcon: Icon(Icons.phone, color: Colors.blue.shade700),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                      ),
-                      validator: (val) => val == null || val.isEmpty ? 'Enter phone number' : null,
-                      onChanged: (val) => setState(() => phoneNumber = val),
-                    ),
-                    const SizedBox(height: 20),
+
                     TextFormField(
                       decoration: InputDecoration(
                         labelText: 'Email',

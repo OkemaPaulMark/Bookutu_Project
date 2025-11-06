@@ -43,4 +43,20 @@ def adverts_list(request):
         )
 
     serializer = AdvertSerializer(adverts, many=True, context={'request': request})
-    return Response(serializer.data)
+    data = serializer.data
+    
+    # Add Google URLs for testing
+    google_urls = [
+        'https://www.google.com',
+        'https://www.google.com/search?q=bus+booking',
+        'https://www.google.com/maps',
+        'https://www.google.com/search?q=travel'
+    ]
+    
+    for i, advert in enumerate(data):
+        if i < len(google_urls):
+            advert['link_url'] = google_urls[i]
+        else:
+            advert['link_url'] = 'https://www.google.com'
+    
+    return Response(data)

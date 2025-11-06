@@ -3,35 +3,21 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  final String baseUrl = 'http://127.0.0.1:8001/api/auth'; // Updated to match Django server
+  final String baseUrl = 'http://10.10.132.24:8000/api';
 
   Future<Map<String, dynamic>> registerUser({
-    required String firstName,
-    required String lastName,
+    required String username,
     required String email,
-    required String phoneNumber,
     required String password,
     required String confirmPassword,
-    String? dateOfBirth,
-    String? gender,
   }) async {
     final url = Uri.parse('$baseUrl/register/');
     final Map<String, dynamic> requestBody = {
-      'first_name': firstName,
-      'last_name': lastName,
+      'username': username,
       'email': email,
-      'phone_number': phoneNumber,
       'password': password,
       'confirm_password': confirmPassword,
     };
-
-    // Add optional fields if provided
-    if (dateOfBirth != null && dateOfBirth.isNotEmpty) {
-      requestBody['date_of_birth'] = dateOfBirth;
-    }
-    if (gender != null && gender.isNotEmpty) {
-      requestBody['gender'] = gender;
-    }
 
     final response = await http.post(
       url,
@@ -82,6 +68,7 @@ class AuthService {
       // Save tokens and user data to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('email', email);
+      await prefs.setString('username', data['user']['username']);
       await prefs.setString('access_token', data['access']);
       await prefs.setString('refresh_token', data['refresh']);
       await prefs.setString('user_data', jsonEncode(data['user']));
@@ -108,6 +95,7 @@ class AuthService {
 
     // Always clear local user data, regardless of backend logout success
     await prefs.remove('email');
+    await prefs.remove('username');
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
     await prefs.remove('user_data');
@@ -134,14 +122,12 @@ class AuthService {
           'message': 'Logged out successfully.',
         };
       } else {
-        // Even if backend logout fails, we've cleared local data
         return {
           'success': true,
           'message': 'Logged out from device.',
         };
       }
     } catch (e) {
-      // Handle network errors during backend logout
       return {
         'success': true,
         'message': 'Logged out from device.',
@@ -172,5 +158,15 @@ class AuthService {
   Future<bool> isLoggedIn() async {
     final token = await getAccessToken();
     return token != null;
+  }
+
+  Future<String?> getUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('username');
+  }
+
+  Future<String?> getEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('email');
   }
 }
