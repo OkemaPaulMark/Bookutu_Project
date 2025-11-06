@@ -31,6 +31,7 @@ class RouteSerializer(serializers.ModelSerializer):
             "upcoming_trips",
         )
         read_only_fields = ("id", "created_at", "total_trips", "upcoming_trips")
+    
     def get_total_trips(self, obj):
         return obj.trips.count()
 
@@ -128,6 +129,10 @@ class TripPricingSerializer(serializers.ModelSerializer):
             "final_base_fare",
             "early_bird_days",
         )
+
+
+
+
 
 class TripManifestSerializer(serializers.Serializer):
     """

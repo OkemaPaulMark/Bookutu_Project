@@ -16,7 +16,7 @@ class _BusListScreenState extends State<BusListScreen> {
   List<Map<String, dynamic>> trips = [];
   bool isLoading = true;
 
-  final String apiUrl = 'http://192.168.100.19:8000/api/auth/trips/'; // Replace with your local IP
+  final String apiUrl = 'http://10.10.132.24:8000/api/trips/';
 
   @override
   void initState() {
@@ -31,24 +31,31 @@ class _BusListScreenState extends State<BusListScreen> {
 
   Future<void> fetchTrips() async {
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      print('Fetching trips from: $apiUrl');
+      final response = await http.get(Uri.parse(apiUrl)).timeout(const Duration(seconds: 10));
+      print('Response status: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        print('Fetched ${data.length} trips');
         setState(() {
           trips = data.map((trip) => trip as Map<String, dynamic>).toList();
           isLoading = false;
         });
       } else {
-        throw Exception('Failed to load trips');
+        print('Response body: ${response.body}');
+        throw Exception('Failed to load trips: ${response.statusCode}');
       }
     } catch (e) {
-      print(e);
+      print('Error fetching trips: $e');
       setState(() {
         isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to fetch trips")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to connect to server: $e")),
+        );
+      }
     }
   }
 
@@ -149,9 +156,16 @@ class TripCard extends StatelessWidget {
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: Image.asset(
-                trip['bus_image'] ?? 'images/default_bus.jpg',
+                'images/default_bus.jpg',
                 height: 100,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 100,
+                    color: Colors.grey.shade300,
+                    child: Icon(Icons.directions_bus, size: 50, color: Colors.grey),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 8),

@@ -9,7 +9,7 @@ User = get_user_model()
 
 class MobileRegisterSerializer(serializers.ModelSerializer):
     """
-    Serializer for mobile app user registration
+    Serializer for mobile app user registration - minimal fields only
     """
     confirm_password = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -71,22 +71,22 @@ class MobileLoginSerializer(serializers.Serializer):
     """
     Custom JWT token serializer for mobile app login
     """
-    username = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
-        username = attrs.get("username")
+        email = attrs.get("email")
         password = attrs.get("password")
 
-        if username and password:
-            # Try to authenticate with the provided username (could be username or email)
-            user = authenticate(username=username, password=password)
+        if email and password:
+            # Authenticate using email (which is the USERNAME_FIELD)
+            user = authenticate(username=email, password=password)
             if not user:
-                raise serializers.ValidationError({"non_field_errors": ["Invalid username or password."]})
+                raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
             if not user.is_active:
                 raise serializers.ValidationError({"non_field_errors": ["User account is disabled."]})
         else:
-            raise serializers.ValidationError({"non_field_errors": ["Username and password are required."]})
+            raise serializers.ValidationError({"non_field_errors": ["Email and password are required."]})
 
         # Get tokens
         from rest_framework_simplejwt.tokens import RefreshToken

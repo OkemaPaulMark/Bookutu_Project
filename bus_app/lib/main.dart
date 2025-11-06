@@ -1,14 +1,13 @@
-// import 'package:bus_app/splash_screen.dart';
 import 'package:flutter/material.dart';
-// Removed provider import
-// Removed ThemeProvider import
 import 'home_page.dart';
 import 'book_page.dart';
 import 'location_page.dart';
 import 'settings_page.dart';
+import 'login_screen.dart';
+import 'services/auth_service.dart';
 
 void main() async {
-  // Removed WidgetsFlutterBinding.ensureInitialized() and ChangeNotifierProvider
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -17,11 +16,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Bookutu',
-      // Removed themeMode, theme, and darkTheme
-      home: DefaultPage(),
+      home: FutureBuilder<bool>(
+        future: AuthService().isLoggedIn(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return snapshot.data == true ? const DefaultPage() : const SignInScreen();
+        },
+      ),
     );
   }
 }

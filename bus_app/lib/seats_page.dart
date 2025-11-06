@@ -1,9 +1,13 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:bus_app/ticketui.dart';
+import 'services/auth_service.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
-  const SeatSelectionScreen({super.key, required Map<String, String> busData});
+  final Map<String, String> busData;
+  
+  const SeatSelectionScreen({super.key, required this.busData});
 
   @override
   State<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
@@ -11,12 +15,49 @@ class SeatSelectionScreen extends StatefulWidget {
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   final Set<int> selectedSeats = {};
-  final List<int> soldSeats = List.generate(10, (_) => Random().nextInt(40) + 1);
+  List<int> bookedSeats = [];
+  int busCapacity = 40;
+  double seatPrice = 50000.0;
+  bool isLoading = true;
+  final AuthService _authService = AuthService();
+  
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
-  static const double seatPrice = 50000.0;
+  @override
+  void initState() {
+    super.initState();
+    _loadSeatData();
+  }
+
+  Future<void> _loadSeatData() async {
+    try {
+      final tripId = widget.busData['id'];
+      final response = await http.get(
+        Uri.parse('http://10.10.132.24:8000/api/trips/$tripId/seats/'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          busCapacity = data['bus_capacity'] ?? 40;
+          bookedSeats = List<int>.from(data['booked_seats'] ?? []);
+          seatPrice = data['seat_price']?.toDouble() ?? 50000.0;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading seats: $e')),
+      );
+    }
+  }
 
   Color _getSeatColor(int seatNumber) {
-    if (soldSeats.contains(seatNumber)) {
+    if (bookedSeats.contains(seatNumber)) {
       return Colors.red;
     } else if (selectedSeats.contains(seatNumber)) {
       return Colors.yellow;
@@ -26,7 +67,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   void _onSeatTap(int seatNumber) {
-    if (soldSeats.contains(seatNumber)) return;
+    if (bookedSeats.contains(seatNumber)) return;
     setState(() {
       if (selectedSeats.contains(seatNumber)) {
         selectedSeats.remove(seatNumber);
@@ -36,40 +77,86 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     });
   }
 
+  Future<void> _viewTicket() async {
+    if (selectedSeats.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one seat')),
+      );
+      return;
+    }
+
+    final userData = await _authService.getUserData();
+    
+    // Create preview data without booking
+    final previewData = {
+      'seat_numbers': selectedSeats.toList(),
+      'passenger_name': userData?['username'] ?? 'User',
+      'total_amount': selectedSeats.length * seatPrice,
+      'status': 'PREVIEW'
+    };
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TicketScreen(
+          bookingData: previewData,
+          tripData: widget.busData,
+          isPreview: true,
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.blue.shade900,
+          title: const Text('Select Your Seat', style: TextStyle(color: Colors.white)),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue.shade900,
-        title: const Text('Select Your Seat', style: TextStyle(color: Colors.white),)),
+        title: const Text('Select Your Seat', style: TextStyle(color: Colors.white)),
+      ),
       backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // Legend Row
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _legendTile('Available', Colors.green),
-                _legendTile('Sold', Colors.red),
+                _legendTile('Booked', Colors.red),
                 _legendTile('Selected', Colors.yellow),
               ],
             ),
             const SizedBox(height: 10),
-            // Driver & Conductor
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: const [
-                _SpecialSeat(label: 'STAFF'),
-                Icon(Icons.bus_alert, size: 40),
+                _SpecialSeat(label: 'DRIVER'),
+                Icon(Icons.directions_bus, size: 40),
               ],
             ),
             const SizedBox(height: 10),
-            // Seats Layout
             Expanded(
               child: ListView.builder(
-                itemCount: 10,
+                itemCount: (busCapacity / 4).ceil(),
                 itemBuilder: (context, rowIndex) {
                   int seatNumber = rowIndex * 4 + 1;
                   return Padding(
@@ -79,33 +166,37 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       children: [
                         Row(
                           children: [
-                            _Seat(
-                              seatNumber: seatNumber,
-                              color: _getSeatColor(seatNumber),
-                              onTap: () => _onSeatTap(seatNumber),
-                            ),
+                            if (seatNumber <= busCapacity)
+                              _Seat(
+                                seatNumber: seatNumber,
+                                color: _getSeatColor(seatNumber),
+                                onTap: () => _onSeatTap(seatNumber),
+                              ),
                             const SizedBox(width: 10),
-                            _Seat(
-                              seatNumber: seatNumber + 1,
-                              color: _getSeatColor(seatNumber + 1),
-                              onTap: () => _onSeatTap(seatNumber + 1),
-                            ),
+                            if (seatNumber + 1 <= busCapacity)
+                              _Seat(
+                                seatNumber: seatNumber + 1,
+                                color: _getSeatColor(seatNumber + 1),
+                                onTap: () => _onSeatTap(seatNumber + 1),
+                              ),
                           ],
                         ),
                         const SizedBox(width: 40),
                         Row(
                           children: [
-                            _Seat(
-                              seatNumber: seatNumber + 2,
-                              color: _getSeatColor(seatNumber + 2),
-                              onTap: () => _onSeatTap(seatNumber + 2),
-                            ),
+                            if (seatNumber + 2 <= busCapacity)
+                              _Seat(
+                                seatNumber: seatNumber + 2,
+                                color: _getSeatColor(seatNumber + 2),
+                                onTap: () => _onSeatTap(seatNumber + 2),
+                              ),
                             const SizedBox(width: 10),
-                            _Seat(
-                              seatNumber: seatNumber + 3,
-                              color: _getSeatColor(seatNumber + 3),
-                              onTap: () => _onSeatTap(seatNumber + 3),
-                            ),
+                            if (seatNumber + 3 <= busCapacity)
+                              _Seat(
+                                seatNumber: seatNumber + 3,
+                                color: _getSeatColor(seatNumber + 3),
+                                onTap: () => _onSeatTap(seatNumber + 3),
+                              ),
                           ],
                         ),
                       ],
@@ -115,11 +206,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               ),
             ),
             const SizedBox(height: 12),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Selected: ${selectedSeats.join(', ')}'),
-                Text('Fare: Ugx ${(selectedSeats.length * seatPrice).toStringAsFixed(2)}'),
+                Text('Total: UGX ${(selectedSeats.length * seatPrice).toStringAsFixed(0)}'),
               ],
             ),
             const SizedBox(height: 12),
@@ -128,12 +220,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: Colors.blue.shade900,
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TicketScreen()),
-                );
-              },
+              onPressed: selectedSeats.isEmpty ? null : _viewTicket,
               child: const Text('View Ticket', style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
           ],

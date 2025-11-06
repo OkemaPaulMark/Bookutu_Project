@@ -1,21 +1,90 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'services/auth_service.dart';
 
-class TicketScreen extends StatelessWidget {
-  final Map<String, String> ticketDetails = {
-    'passengerName': 'John Doe',
-    'seatNumber': 'A12',
-    'numberPlate': 'UBX 123A',
-    'departure': 'Juba',
-    'destination': 'Kampala',
-    'departureTime': '08:00 AM',
-    'arrivalTime': '06:00 PM',
-    'date': '10th Feb 2025',
-    'ticketID': 'TKT-987654',
-    'price': '\$25.00'
-  };
+class TicketScreen extends StatefulWidget {
+  final Map<String, dynamic> bookingData;
+  final Map<String, String> tripData;
+  final bool isPreview;
 
-  TicketScreen({super.key});
+  const TicketScreen({super.key, required this.bookingData, required this.tripData, this.isPreview = false});
+
+  @override
+  State<TicketScreen> createState() => _TicketScreenState();
+}
+
+class _TicketScreenState extends State<TicketScreen> {
+  bool isBookingConfirmed = false;
+  bool isLoading = false;
+  Map<String, dynamic>? confirmedBookingData;
+  final GlobalKey _ticketKey = GlobalKey();
+
+  String _generateTicketId() {
+    if (isBookingConfirmed && confirmedBookingData != null) {
+      return confirmedBookingData!['booking_reference'] ?? 'TKT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    }
+    return 'TKT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+  }
+
+  Future<void> _confirmBooking() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final authService = AuthService();
+      final token = await authService.getAccessToken();
+      
+      final response = await http.post(
+        Uri.parse('http://10.10.132.24:8000/api/bookings/create/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'trip_id': int.parse(widget.tripData['id']!),
+          'seat_numbers': widget.bookingData['seat_numbers'],
+          'passenger_name': widget.bookingData['passenger_name'],
+          'passenger_phone': '0700000000',
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final bookingData = json.decode(response.body);
+        setState(() {
+          confirmedBookingData = bookingData;
+          isBookingConfirmed = true;
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking confirmed successfully!')),
+        );
+      } else {
+        final error = json.decode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error['error'] ?? 'Booking failed')),
+        );
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error confirming booking: $e')),
+      );
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,26 +99,28 @@ class TicketScreen extends StatelessWidget {
         child: Column(
           children: [
             // Ticket Details Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade300,
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  )
-                ],
-              ),
+            RepaintBoundary(
+              key: _ticketKey,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.shade300,
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    )
+                  ],
+                ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // QR Code at top
                   QrImageView(
-                    data: ticketDetails['ticketID']!,
+                    data: (confirmedBookingData ?? widget.bookingData)['booking_reference'] ?? 'PREVIEW',
                     version: QrVersions.auto,
                     size: 120.0,
                     backgroundColor: Colors.white,
@@ -62,95 +133,108 @@ class TicketScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   // Ticket info rows
-                  buildRow("Passenger", ticketDetails['passengerName']!),
-                  buildRow("Seat Number", ticketDetails['seatNumber']!),
+                  buildRow("Ticket ID", _generateTicketId()),
+                  buildRow("Passenger", widget.bookingData['passenger_name'] ?? 'N/A'),
+                  buildRow("Date", DateTime.now().toString().split(' ')[0]),
+                  buildRow("Seat Numbers", (widget.bookingData['seat_numbers'] as List).join(', ')),
                   const Divider(),
-                  buildRow("Bus Number", ticketDetails['numberPlate']!),
-                  buildRow("Departure", ticketDetails['departure']!),
-                  buildRow("Destination", ticketDetails['destination']!),
+                  buildRow("Route", widget.tripData['route_name'] ?? 'N/A'),
+                  buildRow("Bus Company", "N/A"),
+                  buildRow("Number Plate", "N/A"),
                   const Divider(),
-                  buildRow("Departure Time", ticketDetails['departureTime']!),
-                  buildRow("Arrival Time", ticketDetails['arrivalTime']!),
-                  buildRow("Date", ticketDetails['date']!),
+                  buildRow("Departure Time", widget.tripData['departure_time'] ?? 'N/A'),
+                  if (!widget.isPreview || isBookingConfirmed)
+                    buildRow("Status", (confirmedBookingData ?? widget.bookingData)['status'] ?? 'N/A'),
                   const Divider(),
-                  buildRow("Ticket ID", ticketDetails['ticketID']!),
-                  buildRow("Price", ticketDetails['price']!),
+                  buildRow("Total Amount", 'UGX ${widget.bookingData['total_amount']?.toStringAsFixed(0) ?? '0'}'),
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // Payment Options (Grid Cards)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade300,
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  )
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Select payment method",
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const Divider(height: 24),
-                  const SizedBox(height: 16),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 3 / 2,
-                    children: [
-                      buildPaymentCard("images/mtn.png", "MTN Momo"),
-                      buildPaymentCard("images/airtel.jpg", "Airtel Money"),
-                      buildPaymentCard("images/visa.png", "Visa"),
-                    ],
-                  ),
-                ],
-              ),
             ),
 
             const SizedBox(height: 30),
 
-            // Download Button
-            ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Download started...')),
-                );
-              },
-              icon: const Icon(
-                Icons.download,
-                color: Colors.white,
+            // Action Button
+            if (widget.isPreview && !isBookingConfirmed)
+              ElevatedButton(
+                onPressed: isLoading ? null : _confirmBooking,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        "Confirm Booking",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+              )
+            else if (isBookingConfirmed || !widget.isPreview)
+              ElevatedButton.icon(
+                onPressed: _downloadTicket,
+                icon: const Icon(Icons.download, color: Colors.white),
+                label: const Text(
+                  "Download Your Ticket",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade900,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  minimumSize: const Size.fromHeight(50),
+                ),
               ),
-              label: const Text(
-                "Download Your Ticket",
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade900,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                textStyle: const TextStyle(fontSize: 16),
-              ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _downloadTicket() async {
+    try {
+      // Request storage permission
+      var status = await Permission.storage.request();
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Storage permission required to download ticket')),
+        );
+        return;
+      }
+
+      // Capture the ticket widget as image
+      RenderRepaintBoundary boundary = _ticketKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      var image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+      // Get the downloads directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      // Create filename with ticket reference
+      String ticketId = _generateTicketId();
+      String fileName = 'Bookutu_Ticket_$ticketId.png';
+      String filePath = '${directory!.path}/$fileName';
+
+      // Save the file
+      File file = File(filePath);
+      await file.writeAsBytes(pngBytes);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ticket saved to Downloads: $fileName')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error downloading ticket: $e')),
+      );
+    }
   }
 
   Widget buildRow(String label, String value) {

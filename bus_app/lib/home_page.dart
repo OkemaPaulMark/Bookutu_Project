@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -15,6 +14,7 @@ import 'package:bus_app/notification.dart';
 import 'package:bus_app/services/auth_service.dart';
 import 'package:bus_app/settings_page.dart';
 import 'package:bus_app/bookings_page.dart';
+import 'package:bus_app/network_test.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -49,6 +49,7 @@ class Advert {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   String username = '';
+  String email = '';
   final AuthService _authService = AuthService();
   List<Advert> adverts = [];
 
@@ -88,33 +89,44 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadUsername();
+    _loadUserData();
+    NetworkTest.testConnection(); // Debug network
     fetchAdverts();
   }
 
-  Future<void> _loadUsername() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadUserData() async {
+    final storedUsername = await _authService.getUsername();
+    final storedEmail = await _authService.getEmail();
     setState(() {
-      username = prefs.getString('username') ?? '';
+      username = storedUsername ?? 'User';
+      email = storedEmail ?? 'user@example.com';
     });
   }
     Future<void> fetchAdverts() async {
       try {
+        print('Attempting to fetch adverts from: http://10.10.132.24:8000/api/adverts/?all=true');
         final response = await http.get(
-          Uri.parse('http://192.168.100.19:8000/api/adverts/?all=true'), // use all=true
-        );
+          Uri.parse('http://10.10.132.24:8000/api/adverts/?all=true'),
+        ).timeout(const Duration(seconds: 10));
 
+        print('Response status: ${response.statusCode}');
         if (response.statusCode == 200) {
           final List<dynamic> data = json.decode(response.body);
           setState(() {
             adverts = data.map((json) => Advert.fromJson(json)).toList();
           });
-          print('Loaded ${adverts.length} adverts'); // Debug
+          print('Loaded ${adverts.length} adverts');
         } else {
           print('Failed to load adverts: ${response.statusCode}');
+          print('Response body: ${response.body}');
         }
       } catch (e) {
         print('Error fetching adverts: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to connect to server: $e')),
+          );
+        }
       }
     }
 
@@ -133,9 +145,17 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 children: [
                   const SizedBox(width: 10),
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 18,
-                    backgroundImage: AssetImage('images/IMG_E5781.JPG'),
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -233,7 +253,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             accountName: Text(
-              'Okema Paul',
+              username,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -241,27 +261,27 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             accountEmail: Text(
-              'okema@gmail.com',
+              email,
               style: TextStyle(color: Colors.white.withOpacity(0.9)),
             ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: GestureDetector(
+            currentAccountPicture: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const EditProfilePage()),
+                );
+              },
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
                 child: Text(
-                  'OP',
+                  username.isNotEmpty ? username[0].toUpperCase() : 'U',
                   style: TextStyle(
                     fontSize: 24,
                     color: Colors.blue.shade900,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const EditProfilePage()),
-                  );
-                },
               ),
             ),
           ),

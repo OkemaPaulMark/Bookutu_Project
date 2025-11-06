@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:bus_app/edit_profile_page.dart'; // Import the new profile page
+import 'package:bus_app/edit_profile_page.dart';
+import 'services/auth_service.dart';
+import 'login_screen.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -70,7 +72,16 @@ class SettingsPage extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            onTap: () {},
+            onTap: () async {
+              final result = await AuthService().logoutUser();
+              if (result['success']) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SignInScreen()),
+                  (route) => false,
+                );
+              }
+            },
           ),
         ],
       ),
