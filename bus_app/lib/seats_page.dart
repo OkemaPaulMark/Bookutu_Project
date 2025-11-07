@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:bus_app/ticketui.dart';
 import 'services/auth_service.dart';
+import '../config/app_config.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final Map<String, String> busData;
@@ -32,9 +33,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Future<void> _loadSeatData() async {
     try {
-      final tripId = widget.busData['id'];
+      final tripId = widget.busData['id'] ?? '';
       final response = await http.get(
-        Uri.parse('http://10.10.132.24:8000/api/trips/$tripId/seats/'),
+        Uri.parse(AppConfig.getTripSeatsEndpoint(tripId)),
       );
       
       if (response.statusCode == 200) {

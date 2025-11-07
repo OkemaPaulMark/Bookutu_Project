@@ -1,21 +1,18 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
+import '../config/app_config.dart';
 
 class TicketScreen extends StatefulWidget {
   final Map<String, dynamic> bookingData;
   final Map<String, String> tripData;
   final bool isPreview;
+  final bool viewOnly;
 
-  const TicketScreen({super.key, required this.bookingData, required this.tripData, this.isPreview = false});
+  const TicketScreen({super.key, required this.bookingData, required this.tripData, this.isPreview = false, this.viewOnly = false});
 
   @override
   State<TicketScreen> createState() => _TicketScreenState();
@@ -44,7 +41,7 @@ class _TicketScreenState extends State<TicketScreen> {
       final token = await authService.getAccessToken();
       
       final response = await http.post(
-        Uri.parse('http://10.10.132.24:8000/api/bookings/create/'),
+        Uri.parse(AppConfig.bookingsEndpoint),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -139,8 +136,8 @@ class _TicketScreenState extends State<TicketScreen> {
                   buildRow("Seat Numbers", (widget.bookingData['seat_numbers'] as List).join(', ')),
                   const Divider(),
                   buildRow("Route", widget.tripData['route_name'] ?? 'N/A'),
-                  buildRow("Bus Company", "N/A"),
-                  buildRow("Number Plate", "N/A"),
+                  buildRow("Bus Company", widget.tripData['company_name'] ?? 'N/A'),
+                  buildRow("Number Plate", widget.tripData['bus_registration'] ?? 'N/A'),
                   const Divider(),
                   buildRow("Departure Time", widget.tripData['departure_time'] ?? 'N/A'),
                   if (!widget.isPreview || isBookingConfirmed)
@@ -155,84 +152,58 @@ class _TicketScreenState extends State<TicketScreen> {
             const SizedBox(height: 30),
 
             // Action Button
-            if (widget.isPreview && !isBookingConfirmed)
-              ElevatedButton(
-                onPressed: isLoading ? null : _confirmBooking,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  minimumSize: const Size.fromHeight(50),
+            if (!widget.viewOnly)
+              if (widget.isPreview && !isBookingConfirmed)
+                ElevatedButton(
+                  onPressed: isLoading ? null : _confirmBooking,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Confirm Booking",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                )
+              else if (isBookingConfirmed || !widget.isPreview)
+                ElevatedButton.icon(
+                  onPressed: _saveToNotifications,
+                  icon: const Icon(Icons.notifications, color: Colors.white),
+                  label: const Text(
+                    "Save to Notifications",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade900,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    minimumSize: const Size.fromHeight(50),
+                  ),
                 ),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Confirm Booking",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-              )
-            else if (isBookingConfirmed || !widget.isPreview)
-              ElevatedButton.icon(
-                onPressed: _downloadTicket,
-                icon: const Icon(Icons.download, color: Colors.white),
-                label: const Text(
-                  "Download Your Ticket",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade900,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  minimumSize: const Size.fromHeight(50),
-                ),
-              ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _downloadTicket() async {
+  Future<void> _saveToNotifications() async {
     try {
-      // Request storage permission
-      var status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Storage permission required to download ticket')),
-        );
-        return;
-      }
-
-      // Capture the ticket widget as image
-      RenderRepaintBoundary boundary = _ticketKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      var image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      Uint8List pngBytes = byteData!.buffer.asUint8List();
-
-      // Get the downloads directory
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = Directory('/storage/emulated/0/Download');
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
-
-      // Create filename with ticket reference
-      String ticketId = _generateTicketId();
-      String fileName = 'Bookutu_Ticket_$ticketId.png';
-      String filePath = '${directory!.path}/$fileName';
-
-      // Save the file
-      File file = File(filePath);
-      await file.writeAsBytes(pngBytes);
-
+      await NotificationService.saveTicket(
+        bookingData: confirmedBookingData ?? widget.bookingData,
+        tripData: widget.tripData,
+      );
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ticket saved to Downloads: $fileName')),
+        const SnackBar(
+          content: Text('Ticket saved to notifications! Check the notifications page.'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error downloading ticket: $e')),
+        SnackBar(content: Text('Error saving ticket: $e')),
       );
     }
   }

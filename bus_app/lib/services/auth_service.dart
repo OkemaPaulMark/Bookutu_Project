@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 
 class AuthService {
-  final String baseUrl = 'http://10.10.132.24:8000/api';
 
   Future<Map<String, dynamic>> registerUser({
     required String username,
@@ -11,7 +11,7 @@ class AuthService {
     required String password,
     required String confirmPassword,
   }) async {
-    final url = Uri.parse('$baseUrl/register/');
+    final url = Uri.parse(AppConfig.registerEndpoint);
     final Map<String, dynamic> requestBody = {
       'username': username,
       'email': email,
@@ -52,7 +52,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final url = Uri.parse('$baseUrl/login/');
+    final url = Uri.parse(AppConfig.loginEndpoint);
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -109,7 +109,7 @@ class AuthService {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/logout/'),
+        Uri.parse(AppConfig.logoutEndpoint),
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',

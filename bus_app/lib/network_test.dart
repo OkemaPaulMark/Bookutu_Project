@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 class NetworkTest {
-  static const String baseUrl = 'http://10.10.132.24:8000';
   
   static Future<void> testConnection() async {
     print('=== Network Test Started ===');
     
     // Test 1: Basic connectivity
     try {
-      print('Testing basic connectivity to $baseUrl...');
-      final response = await http.get(Uri.parse(baseUrl)).timeout(const Duration(seconds: 5));
+      print('Testing basic connectivity to ${AppConfig.baseUrl}...');
+      final response = await http.get(Uri.parse(AppConfig.baseUrl)).timeout(const Duration(seconds: 5));
       print('Basic connection: ${response.statusCode}');
     } catch (e) {
       print('Basic connection failed: $e');
@@ -19,7 +19,7 @@ class NetworkTest {
     // Test 2: API endpoint
     try {
       print('Testing API endpoint...');
-      final response = await http.get(Uri.parse('$baseUrl/api/')).timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse('${AppConfig.apiUrl}/')).timeout(const Duration(seconds: 5));
       print('API endpoint: ${response.statusCode}');
     } catch (e) {
       print('API endpoint failed: $e');
@@ -28,7 +28,7 @@ class NetworkTest {
     // Test 3: Adverts endpoint
     try {
       print('Testing adverts endpoint...');
-      final response = await http.get(Uri.parse('$baseUrl/api/adverts/?all=true')).timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse(AppConfig.advertsEndpoint)).timeout(const Duration(seconds: 5));
       print('Adverts endpoint: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -41,7 +41,7 @@ class NetworkTest {
     // Test 4: Trips endpoint
     try {
       print('Testing trips endpoint...');
-      final response = await http.get(Uri.parse('$baseUrl/api/trips/')).timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse(AppConfig.tripsEndpoint)).timeout(const Duration(seconds: 5));
       print('Trips endpoint: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

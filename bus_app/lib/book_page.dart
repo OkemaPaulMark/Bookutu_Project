@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'seats_page.dart';
+import '../config/app_config.dart';
 
 class BusListScreen extends StatefulWidget {
   const BusListScreen({super.key});
@@ -16,8 +17,6 @@ class _BusListScreenState extends State<BusListScreen> {
   List<Map<String, dynamic>> trips = [];
   bool isLoading = true;
 
-  final String apiUrl = 'http://10.10.132.24:8000/api/trips/';
-
   @override
   void initState() {
     super.initState();
@@ -31,8 +30,8 @@ class _BusListScreenState extends State<BusListScreen> {
 
   Future<void> fetchTrips() async {
     try {
-      print('Fetching trips from: $apiUrl');
-      final response = await http.get(Uri.parse(apiUrl)).timeout(const Duration(seconds: 10));
+      print('Fetching trips from: ${AppConfig.tripsEndpoint}');
+      final response = await http.get(Uri.parse(AppConfig.tripsEndpoint)).timeout(const Duration(seconds: 10));
       print('Response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
@@ -109,7 +108,7 @@ class _BusListScreenState extends State<BusListScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: 0.65,
+                    childAspectRatio: 0.7,
                   ),
                   itemCount: filteredTrips.length,
                   itemBuilder: (context, index) {
@@ -149,7 +148,7 @@ class TripCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(6.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -157,57 +156,72 @@ class TripCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: Image.asset(
                 'images/default_bus.jpg',
-                height: 100,
+                height: 80,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 100,
+                    height: 80,
                     color: Colors.grey.shade300,
-                    child: Icon(Icons.directions_bus, size: 50, color: Colors.grey),
+                    child: Icon(Icons.directions_bus, size: 40, color: Colors.grey),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 8),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    trip['route_name'] ?? '',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Departure: ${trip['departure_time'] ?? ''}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    "Fare: UGX ${trip['base_fare'] ?? ''}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    "Seats: ${trip['capacity'] ?? ''}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      trip['route_name'] ?? '',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "Company: ${trip['company_name'] ?? 'N/A'}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: Colors.blue.shade700),
+                    ),
+                    Text(
+                      "Bus: ${trip['bus_registration'] ?? 'N/A'}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    Text(
+                      "Time: ${trip['departure_time'] ?? ''}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    Text(
+                      "Seats: ${trip['capacity'] ?? 'N/A'}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    const Spacer(),
+                    Text(
+                      "UGX ${trip['base_fare'] ?? ''}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700, fontSize: 11),
+                    ),
+                  ],
+                ),
               ),
             ),
             SizedBox(
-              height: 40,
+              height: 32,
               child: ElevatedButton(
                 onPressed: () {
-                  // Convert dynamic map to Map<String, String>
                   Map<String, String> busData = trip.map(
                     (k, v) => MapEntry(k, v == null ? '' : v.toString()),
                   );
-
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -217,10 +231,11 @@ class TripCard extends StatelessWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue.shade900,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
                 child: const Text(
                   "Book Now",
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white, fontSize: 11),
                 ),
               ),
             ),
