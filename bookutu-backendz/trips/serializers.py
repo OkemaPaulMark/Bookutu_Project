@@ -151,9 +151,10 @@ class TripPublicSerializer(serializers.ModelSerializer):
     Public serializer for Flutter app (GET endpoint)
     """
     route_name = serializers.CharField(source='route.name', read_only=True)
-    bus_numberplate = serializers.CharField(source='bus.registration_number', read_only=True)
+    bus_registration = serializers.CharField(source='bus.license_plate', read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
     capacity = serializers.IntegerField(source='bus.total_seats', read_only=True)
 
     class Meta:
         model = Trip
-        fields = ['id', 'route_name', 'departure_time', 'base_fare', 'bus_numberplate', 'capacity']
+        fields = ['id', 'route_name', 'departure_time', 'arrival_time', 'departure_date', 'base_fare', 'bus_registration', 'company_name', 'capacity']

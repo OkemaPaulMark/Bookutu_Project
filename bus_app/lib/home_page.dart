@@ -15,6 +15,8 @@ import 'package:bus_app/services/auth_service.dart';
 import 'package:bus_app/settings_page.dart';
 import 'package:bus_app/bookings_page.dart';
 import 'package:bus_app/network_test.dart';
+import 'package:bus_app/services/notification_service.dart';
+import 'package:bus_app/config/app_config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -102,11 +104,16 @@ class _HomePageState extends State<HomePage> {
       email = storedEmail ?? 'user@example.com';
     });
   }
+
+  Future<int> _getNotificationCount() async {
+    final tickets = await NotificationService.getTickets();
+    return tickets.length;
+  }
     Future<void> fetchAdverts() async {
       try {
-        print('Attempting to fetch adverts from: http://10.10.132.24:8000/api/adverts/?all=true');
+        print('Attempting to fetch adverts from: ${AppConfig.advertsEndpoint}');
         final response = await http.get(
-          Uri.parse('http://10.10.132.24:8000/api/adverts/?all=true'),
+          Uri.parse(AppConfig.advertsEndpoint),
         ).timeout(const Duration(seconds: 10));
 
         print('Response status: ${response.statusCode}');
@@ -174,46 +181,53 @@ class _HomePageState extends State<HomePage> {
           },
         ),
         actions: [
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => NotificationScreen(),
+          FutureBuilder<int>(
+            future: _getNotificationCount(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NotificationScreen(),
+                    ),
+                  );
+                },
+                child: Stack(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Icon(Icons.notifications, color: Colors.white),
+                    ),
+                    if (count > 0)
+                      Positioned(
+                        right: 10,
+                        top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 10,
+                            minHeight: 10,
+                          ),
+                          child: Text(
+                            count > 99 ? '99+' : count.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               );
             },
-            child: Stack(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Icon(Icons.notifications, color: Colors.white),
-                ),
-                Positioned(
-                  right: 10,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 10,
-                      minHeight: 10,
-                    ),
-                    child: const Text(
-                      '2',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -381,6 +395,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildServices() {
     return Column(
       children: [
+        const SizedBox(height: 20),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
@@ -395,7 +410,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12.0),
           child: Row(
@@ -409,13 +424,14 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+        const SizedBox(height: 20),
       ],
     );
   }
 
   Widget _buildAdvertTitle() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 12.0),
       child: Row(
         children: [
           Text(
