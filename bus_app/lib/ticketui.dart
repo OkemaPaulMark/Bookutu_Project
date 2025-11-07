@@ -132,7 +132,7 @@ class _TicketScreenState extends State<TicketScreen> {
                   // Ticket info rows
                   buildRow("Ticket ID", _generateTicketId()),
                   buildRow("Passenger", widget.bookingData['passenger_name'] ?? 'N/A'),
-                  buildRow("Date", DateTime.now().toString().split(' ')[0]),
+                  buildRow("Date", widget.tripData['departure_date'] ?? DateTime.now().toString().split(' ')[0]),
                   buildRow("Seat Numbers", (widget.bookingData['seat_numbers'] as List).join(', ')),
                   const Divider(),
                   buildRow("Route", widget.tripData['route_name'] ?? 'N/A'),
