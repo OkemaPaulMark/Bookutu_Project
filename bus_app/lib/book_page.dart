@@ -199,7 +199,7 @@ class TripCard extends StatelessWidget {
                       style: const TextStyle(fontSize: 11),
                     ),
                     Text(
-                      "Seats: ${trip['capacity'] ?? 'N/A'}",
+                      "Date: ${trip['departure_date'] ?? 'N/A'}",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 11),
