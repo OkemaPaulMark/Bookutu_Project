@@ -1,0 +1,377 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  COMPANY_STAFF
+  SUPER_ADMIN
+  PASSENGER
+}
+
+enum CompanyStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum BusStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  CARD
+  BANK_TRANSFER
+  WALLET
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  username      String?     @unique
+  firstName     String?
+  lastName      String?
+  phoneNumber   String?
+  passwordHash  String
+  userType      UserType    @default(COMPANY_STAFF)
+  isActive      Boolean     @default(true)
+  isVerified    Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  company       Company?    @relation(fields: [companyId], references: [id])
+  companyId     String?
+  bookings      Booking[]
+  createdBookings Booking[] @relation("CreatedBookings")
+  payments      Payment[]
+  processedRefunds Refund[] @relation("ProcessedRefunds")
+  announcements Announcement[]
+  systemLogs    SystemLog[]
+
+  @@map("users")
+}
+
+model Company {
+  id                String        @id @default(cuid())
+  name              String
+  slug              String        @unique
+  description       String?
+  email             String
+  phoneNumber       String
+  website           String?
+  address           String
+  city              String
+  state             String
+  country           String        @default("Uganda")
+  postalCode        String?
+  registrationNumber String       @unique
+  taxId             String?
+  licenseNumber     String
+  status            CompanyStatus @default(PENDING)
+  commissionRate    Decimal       @default(10.00)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  verifiedAt        DateTime?
+
+  users             User[]
+  buses             Bus[]
+  drivers           Driver[]
+  routes            Route[]
+  trips             Trip[]
+  bookings          Booking[]
+  payments          Payment[]
+  earnings          CompanyEarnings[]
+
+  @@map("companies")
+}
+
+model Bus {
+  id                String    @id @default(cuid())
+  companyId         String
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  licensePlate      String    @unique
+  model             String
+  make              String
+  year              Int
+  totalSeats        Int
+  busType           String
+  hasAc             Boolean   @default(true)
+  hasWifi           Boolean   @default(false)
+  hasChargingPorts  Boolean   @default(false)
+  hasEntertainment  Boolean   @default(false)
+  hasRestroom       Boolean   @default(false)
+  status            BusStatus @default(ACTIVE)
+  imageUrl          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  seats             BusSeat[]
+  trips             Trip[]
+
+  @@map("buses")
+}
+
+model BusSeat {
+  id               String   @id @default(cuid())
+  busId            String
+  bus              Bus      @relation(fields: [busId], references: [id], onDelete: Cascade)
+  seatNumber       String
+  rowNumber        Int
+  seatPosition     String
+  seatType         String
+  isWindow         Boolean  @default(false)
+  isAisle          Boolean  @default(false)
+  hasExtraLegroom  Boolean  @default(false)
+  priceMultiplier  Decimal  @default(1.00)
+  createdAt        DateTime @default(now())
+
+  bookings         Booking[]
+
+  @@unique([busId, seatNumber])
+  @@map("bus_seats")
+}
+
+model Driver {
+  id                String   @id @default(cuid())
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  firstName         String
+  lastName          String
+  phoneNumber       String
+  email             String?
+  licenseNumber     String   @unique
+  licenseExpiryDate DateTime
+  dateOfBirth       DateTime
+  employeeId        String?
+  hireDate          DateTime
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  trips             Trip[]
+
+  @@map("drivers")
+}
+
+model Route {
+  id                  String   @id @default(cuid())
+  companyId           String
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name                String
+  originCity          String
+  originTerminal      String
+  destinationCity     String
+  destinationTerminal String
+  distanceKm          Int
+  estimatedDurationHours Decimal
+  baseFare            Decimal
+  isActive            Boolean  @default(true)
+  intermediateStops   Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  trips               Trip[]
+
+  @@unique([companyId, originCity, destinationCity])
+  @@map("routes")
+}
+
+model Trip {
+  id                String   @id @default(cuid())
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  routeId           String
+  route             Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  busId             String
+  bus               Bus      @relation(fields: [busId], references: [id], onDelete: Cascade)
+  driverId          String?
+  driver            Driver?  @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  departureDate     DateTime
+  departureTime     String
+  arrivalTime       String
+  baseFare          Decimal
+  status            String   @default("SCHEDULED")
+  availableSeats    Int
+  bookedSeats       Int      @default(0)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  bookings          Booking[]
+  pricing           TripPricing?
+
+  @@index([companyId, departureDate])
+  @@map("trips")
+}
+
+model TripPricing {
+  id                   String   @id @default(cuid())
+  tripId               String   @unique
+  trip                 Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  peakSeasonMultiplier Decimal  @default(1.00)
+  demandMultiplier     Decimal  @default(1.00)
+  earlyBirdDiscount    Decimal  @default(0.00)
+  earlyBirdDays        Int      @default(7)
+  finalBaseFare        Decimal
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("trip_pricing")
+}
+
+model Booking {
+  id                String         @id @default(cuid())
+  bookingReference  String         @unique
+  companyId         String
+  company           Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tripId            String
+  trip              Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  passengerId       String
+  passenger         User           @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  seatId            String
+  seat              BusSeat        @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  status            BookingStatus  @default(PENDING)
+  source            String         @default("MOBILE_APP")
+  passengerName     String
+  passengerPhone    String
+  passengerEmail    String?
+  baseFare          Decimal
+  seatFee           Decimal        @default(0)
+  serviceFee        Decimal        @default(0)
+  totalAmount       Decimal
+  bookedById        String?
+  bookedBy          User?          @relation("CreatedBookings", fields: [bookedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  confirmedAt       DateTime?
+  cancelledAt       DateTime?
+
+  payments          Payment[]
+  refunds           Refund[]
+
+  @@index([companyId, createdAt])
+  @@map("bookings")
+}
+
+model Payment {
+  id                  String        @id @default(cuid())
+  paymentReference    String        @unique
+  companyId           String
+  company             Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bookingId           String
+  booking             Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId              String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount              Decimal
+  currency            String        @default("UGX")
+  paymentMethod       PaymentMethod
+  status              PaymentStatus @default(PENDING)
+  gatewayTransactionId String?
+  gatewayResponse     Json?
+  mobileMoneyNumber   String?
+  mobileMoneyProvider String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  completedAt         DateTime?
+
+  refunds             Refund[]
+
+  @@index([companyId, status])
+  @@map("payments")
+}
+
+model Refund {
+  id                String   @id @default(cuid())
+  refundReference   String   @unique
+  paymentId         String
+  payment           Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  bookingId         String
+  booking           Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount            Decimal
+  reason            String
+  status            String   @default("PENDING")
+  processedById     String?
+  processedBy       User?    @relation("ProcessedRefunds", fields: [processedById], references: [id], onDelete: SetNull)
+  gatewayRefundId   String?
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  @@map("refunds")
+}
+
+model Announcement {
+  id              String   @id @default(cuid())
+  title           String
+  message         String
+  priority        String
+  targetAudience  String
+  createdById     String
+  createdBy       User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  @@map("announcements")
+}
+
+model SystemLog {
+  id            String   @id @default(cuid())
+  action        String
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  targetModel   String?
+  targetId      Int?
+  description   String
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@map("system_logs")
+}
+
+model CompanyEarnings {
+  id                  String   @id @default(cuid())
+  companyId           String
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  date                DateTime
+  totalBookings       Int      @default(0)
+  grossRevenue        Decimal  @default(0)
+  platformCommission  Decimal  @default(0)
+  netEarnings         Decimal  @default(0)
+  cashPayments        Decimal  @default(0)
+  mobileMoneyPayments Decimal  @default(0)
+  cardPayments        Decimal  @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([companyId, date])
+  @@map("company_earnings")
+}
