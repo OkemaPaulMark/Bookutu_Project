@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #1f2937;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.card {
+  @apply rounded-xl border border-slate-200 bg-white shadow-card;
+}
+
+.sidebar-width {
+  width: 260px;
+}
+
+.main-offset {
+  margin-left: 260px;
+}
+
+@media (max-width: 768px) {
+  .sidebar-width {
+    width: 82px;
+  }
+
+  .main-offset {
+    margin-left: 82px;
+  }
+
+  .menu-text {
+    display: none;
+  }
+}
