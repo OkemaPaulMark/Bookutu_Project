@@ -4,48 +4,43 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class AuthService {
-
   Future<Map<String, dynamic>> registerUser({
+    required String firstName,
+    required String lastName,
     required String username,
     required String email,
     required String password,
     required String confirmPassword,
   }) async {
     final url = Uri.parse(AppConfig.registerEndpoint);
-    final Map<String, dynamic> requestBody = {
-      'username': username,
-      'email': email,
-      'password': password,
-      'confirm_password': confirmPassword,
-    };
-
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(requestBody),
+      body: jsonEncode({
+        'firstName': firstName,
+        'lastName': lastName,
+        'username': username,
+        'email': email,
+        'password': password,
+        'confirmPassword': confirmPassword,
+      }),
     );
 
-    final data = jsonDecode(response.body);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+
     if (response.statusCode == 201) {
+      await _saveSession(data, email);
       return {
         'success': true,
-        'message': data['message'] ?? 'Registration successful',
-        'user': data['user']
+        'message': 'Registration successful',
+        'user': data['user'],
       };
-    } else {
-      // Handle field-specific errors
-      String errorMessage = 'Registration failed';
-      if (data.containsKey('email') && data['email'] is List) {
-        errorMessage = data['email'][0];
-      } else if (data.containsKey('phone_number') && data['phone_number'] is List) {
-        errorMessage = data['phone_number'][0];
-      } else if (data.containsKey('password') && data['password'] is List) {
-        errorMessage = data['password'][0];
-      } else if (data.containsKey('non_field_errors') && data['non_field_errors'] is List) {
-        errorMessage = data['non_field_errors'][0];
-      }
-      return {'success': false, 'message': errorMessage};
     }
+
+    return {
+      'success': false,
+      'message': data['message'] ?? 'Registration failed',
+    };
   }
 
   Future<Map<String, dynamic>> loginUser({
@@ -62,80 +57,50 @@ class AuthService {
       }),
     );
 
-    final data = jsonDecode(response.body);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
 
     if (response.statusCode == 200) {
-      // Save tokens and user data to SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('email', email);
-      await prefs.setString('username', data['user']['username']);
-      await prefs.setString('access_token', data['access']);
-      await prefs.setString('refresh_token', data['refresh']);
-      await prefs.setString('user_data', jsonEncode(data['user']));
-
+      await _saveSession(data, email);
       return {
         'success': true,
         'message': 'Login successful',
         'data': data,
-        'user': data['user']
+        'user': data['user'],
       };
-    } else {
-      // Handle field-specific errors
-      String errorMessage = 'Login failed';
-      if (data.containsKey('non_field_errors') && data['non_field_errors'] is List) {
-        errorMessage = data['non_field_errors'][0];
-      }
-      return {'success': false, 'message': errorMessage};
     }
+
+    return {
+      'success': false,
+      'message': data['message'] ?? 'Login failed',
+    };
   }
 
   Future<Map<String, dynamic>> logoutUser() async {
     final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('access_token');
-
-    // Always clear local user data, regardless of backend logout success
     await prefs.remove('email');
     await prefs.remove('username');
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
     await prefs.remove('user_data');
 
-    if (accessToken == null) {
-      return {
-        'success': true,
-        'message': 'Logged out successfully from device.',
-      };
-    }
-
-    try {
-      final response = await http.post(
-        Uri.parse(AppConfig.logoutEndpoint),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Logged out successfully.',
-        };
-      } else {
-        return {
-          'success': true,
-          'message': 'Logged out from device.',
-        };
-      }
-    } catch (e) {
-      return {
-        'success': true,
-        'message': 'Logged out from device.',
-      };
-    }
+    return {
+      'success': true,
+      'message': 'Logged out successfully from device.',
+    };
   }
 
-  // Helper methods for token management
+  Future<void> _saveSession(Map<String, dynamic> data, String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    final user = data['user'] as Map<String, dynamic>;
+    final username = user['username'] as String? ?? '';
+
+    await prefs.setString('email', email);
+    await prefs.setString('username', username);
+    await prefs.setString('access_token', data['access'] as String);
+    await prefs.setString('refresh_token', data['refresh'] as String);
+    await prefs.setString('user_data', jsonEncode(user));
+  }
+
   Future<String?> getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
@@ -149,10 +114,11 @@ class AuthService {
   Future<Map<String, dynamic>?> getUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final userDataString = prefs.getString('user_data');
-    if (userDataString != null) {
-      return jsonDecode(userDataString);
+    if (userDataString == null) {
+      return null;
     }
-    return null;
+
+    return jsonDecode(userDataString) as Map<String, dynamic>;
   }
 
   Future<bool> isLoggedIn() async {

@@ -1,10 +1,13 @@
+import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import RoleRoute from "@components/RoleRoute";
 import AdminLayout from "@layouts/AdminLayout";
 import CompanyLayout from "@layouts/CompanyLayout";
 import LoginPage from "@pages/auth/LoginPage";
+import SetPasswordPage from "@pages/auth/SetPasswordPage";
 import AdminOverviewPage from "@pages/admin/AdminOverviewPage";
 import AdminCompaniesPage from "@pages/admin/AdminCompaniesPage";
+import AdminCompanyAdminsPage from "@pages/admin/AdminCompanyAdminsPage";
 import AdminBookingsPage from "@pages/admin/AdminBookingsPage";
 import AdminFinancialsPage from "@pages/admin/AdminFinancialsPage";
 import AdminAdvertsPage from "@pages/admin/AdminAdvertsPage";
@@ -31,15 +34,23 @@ function RootRedirect() {
 }
 
 export default function App() {
+  const restoreSession = useAuthStore((s) => s.restoreSession);
+
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
+
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/set-password" element={<SetPasswordPage />} />
 
       <Route element={<RoleRoute allow="SUPER_ADMIN" />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminOverviewPage />} />
           <Route path="companies" element={<AdminCompaniesPage />} />
+          <Route path="company-admins" element={<AdminCompanyAdminsPage />} />
           <Route path="bookings" element={<AdminBookingsPage />} />
           <Route path="financials" element={<AdminFinancialsPage />} />
           <Route path="adverts" element={<AdminAdvertsPage />} />

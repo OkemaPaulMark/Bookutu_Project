@@ -12,7 +12,10 @@ export const bookingService = {
     search?: string
   }) {
     if (input.userType === 'SUPER_ADMIN') {
-      return bookingRepository.findBookings({ status: input.status, search: input.search })
+      return bookingRepository.findBookings({ 
+        status: input.status, 
+        search: input.search 
+      })
     }
 
     if (input.userType === 'COMPANY_STAFF') {
