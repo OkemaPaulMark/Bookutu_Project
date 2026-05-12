@@ -1,6 +1,12 @@
 import type { Request, Response } from 'express'
 import { authService } from './auth.service.js'
-import { loginSchema } from './auth.validators.js'
+import {
+  bootstrapSuperAdminSchema,
+  inviteCompanyAdminSchema,
+  loginSchema,
+  registerPassengerSchema,
+  setPasswordSchema
+} from './auth.validators.js'
 import { AppError } from '../../utils/AppError.js'
 
 export async function loginController(req: Request, res: Response) {
@@ -29,11 +35,31 @@ export async function meController(req: Request, res: Response) {
 }
 
 export async function registerPassengerController(req: Request, res: Response) {
-  const user = await authService.registerPassenger(req.body)
-  res.status(201).json({ user })
+  const payload = registerPassengerSchema.parse(req.body)
+  const data = await authService.registerPassenger(payload)
+  res.status(201).json(data)
 }
 
 export async function registerCompanyStaffController(req: Request, res: Response) {
-  const user = await authService.registerCompanyStaff(req.body)
-  res.status(201).json({ user })
+  const payload = inviteCompanyAdminSchema.parse(req.body)
+  const data = await authService.inviteCompanyAdmin(payload)
+  res.status(201).json(data)
+}
+
+export async function getPasswordSetupDetailsController(req: Request, res: Response) {
+  const token = String(req.params.token)
+  const data = await authService.getPasswordSetupDetails(token)
+  res.json(data)
+}
+
+export async function setPasswordController(req: Request, res: Response) {
+  const payload = setPasswordSchema.parse(req.body)
+  const data = await authService.setPassword(payload)
+  res.json(data)
+}
+
+export async function bootstrapSuperAdminController(req: Request, res: Response) {
+  const payload = bootstrapSuperAdminSchema.parse(req.body)
+  const data = await authService.bootstrapSuperAdmin(payload)
+  res.status(201).json(data)
 }

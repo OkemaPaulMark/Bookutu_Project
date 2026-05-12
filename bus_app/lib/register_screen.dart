@@ -32,6 +32,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       final result = await _authService.registerUser(
+        firstName: firstName,
+        lastName: lastName,
         username: '$firstName$lastName'.toLowerCase().replaceAll(' ', ''),
         email: email,
         password: password,
