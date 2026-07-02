@@ -1,533 +1,186 @@
-import { FormEvent, useState } from "react";
-import {
-  Eye,
-  Edit2,
-  Trash2,
-  Plus,
-  X,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
-import toast from "react-hot-toast";
+import { FormEvent, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus, X, Loader2, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { listTripsRequest, createTripRequest, updateTripRequest, type TripRecord } from '@/lib/trips'
+import { listRoutesRequest, listBusesRequest, listDriversRequest } from '@/lib/fleet'
+import { getApiErrorMessage } from '@/lib/api'
 
-interface Trip {
-  id: string;
-  tripRef: string;
-  route: string;
-  bus: string;
-  driver: string;
-  departureDate: string;
-  departureTime: string;
-  seatsBooked: number;
-  totalSeats: number;
-  fare: number;
-  status: "scheduled" | "in-progress" | "completed" | "cancelled";
-  revenue: number;
+const STATUS_COLORS: Record<string, string> = {
+  SCHEDULED: 'bg-blue-100 text-blue-800',
+  IN_PROGRESS: 'bg-emerald-100 text-emerald-800',
+  COMPLETED: 'bg-slate-100 text-slate-800',
+  CANCELLED: 'bg-rose-100 text-rose-800'
 }
 
+const emptyForm = { routeId: '', busId: '', driverId: '', departureDate: '', departureTime: '', arrivalTime: '', baseFare: 0, notes: '' }
+
 export default function CompanyTripsPage() {
-  const [showModal, setShowModal] = useState(false);
-  const [trips, setTrips] = useState<Trip[]>([
-    {
-      id: "1",
-      tripRef: "TRIP-001",
-      route: "Kampala - Masaka",
-      bus: "UBK-001",
-      driver: "John Doe",
-      departureDate: "2025-05-15",
-      departureTime: "08:00 AM",
-      seatsBooked: 45,
-      totalSeats: 50,
-      fare: 25000,
-      status: "scheduled",
-      revenue: 1125000,
-    },
-    {
-      id: "2",
-      tripRef: "TRIP-002",
-      route: "Kampala - Jinja",
-      bus: "UBK-002",
-      driver: "Jane Smith",
-      departureDate: "2025-05-15",
-      departureTime: "10:30 AM",
-      seatsBooked: 40,
-      totalSeats: 45,
-      fare: 18000,
-      status: "scheduled",
-      revenue: 720000,
-    },
-    {
-      id: "3",
-      tripRef: "TRIP-003",
-      route: "Kampala - Fort Portal",
-      bus: "UBK-004",
-      driver: "Peter Johnson",
-      departureDate: "2025-05-14",
-      departureTime: "02:00 PM",
-      seatsBooked: 48,
-      totalSeats: 50,
-      fare: 45000,
-      status: "completed",
-      revenue: 2160000,
-    },
-    {
-      id: "4",
-      tripRef: "TRIP-004",
-      route: "Masaka - Mbarara",
-      bus: "UBK-001",
-      driver: "Grace Lee",
-      departureDate: "2025-05-16",
-      departureTime: "06:00 AM",
-      seatsBooked: 25,
-      totalSeats: 50,
-      fare: 35000,
-      status: "scheduled",
-      revenue: 875000,
-    },
-    {
-      id: "5",
-      tripRef: "TRIP-005",
-      route: "Jinja - Soroti",
-      bus: "UBK-002",
-      driver: "David Brown",
-      departureDate: "2025-05-14",
-      departureTime: "09:00 AM",
-      seatsBooked: 42,
-      totalSeats: 45,
-      fare: 40000,
-      status: "in-progress",
-      revenue: 1680000,
-    },
-    {
-      id: "6",
-      tripRef: "TRIP-006",
-      route: "Kampala - Masaka",
-      bus: "UBK-004",
-      driver: "Emma Wilson",
-      departureDate: "2025-05-13",
-      departureTime: "11:00 AM",
-      seatsBooked: 0,
-      totalSeats: 50,
-      fare: 25000,
-      status: "cancelled",
-      revenue: 0,
-    },
-  ]);
+  const qc = useQueryClient()
+  const [showModal, setShowModal] = useState(false)
+  const [editingTrip, setEditingTrip] = useState<TripRecord | null>(null)
+  const [form, setForm] = useState(emptyForm)
 
-  const [formData, setFormData] = useState({
-    route: "",
-    bus: "",
-    driver: "",
-    departureDate: "",
-    departureTime: "",
-  });
+  const tripsQuery = useQuery({ queryKey: ['trips'], queryFn: () => listTripsRequest() })
+  const routesQuery = useQuery({ queryKey: ['routes'], queryFn: listRoutesRequest })
+  const busesQuery = useQuery({ queryKey: ['buses'], queryFn: listBusesRequest })
+  const driversQuery = useQuery({ queryKey: ['drivers'], queryFn: listDriversRequest })
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createMutation = useMutation({
+    mutationFn: createTripRequest,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['trips'] }); toast.success('Trip scheduled'); setShowModal(false); setForm(emptyForm) },
+    onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to schedule trip'))
+  })
 
-  function handleInputChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof updateTripRequest>[1] }) => updateTripRequest(id, payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['trips'] }); toast.success('Trip updated'); setShowModal(false); setEditingTrip(null) },
+    onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to update trip'))
+  })
+
+  function openCreate() { setEditingTrip(null); setForm(emptyForm); setShowModal(true) }
+  function openEdit(trip: TripRecord) {
+    setEditingTrip(trip)
+    setForm({ routeId: trip.routeId, busId: trip.busId, driverId: trip.driverId ?? '', departureDate: trip.departureDate.slice(0, 10), departureTime: trip.departureTime, arrivalTime: trip.arrivalTime, baseFare: Number(trip.baseFare), notes: trip.notes ?? '' })
+    setShowModal(true)
   }
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    setTimeout(() => {
-      const newTrip: Trip = {
-        id: Date.now().toString(),
-        tripRef: `TRIP-${String(trips.length + 1).padStart(3, "0")}`,
-        route: formData.route,
-        bus: formData.bus,
-        driver: formData.driver,
-        departureDate: formData.departureDate,
-        departureTime: formData.departureTime,
-        seatsBooked: 0,
-        totalSeats: 50,
-        fare: 25000,
-        status: "scheduled",
-        revenue: 0,
-      };
-
-      setTrips((prev) => [newTrip, ...prev]);
-      toast.success("Trip scheduled successfully");
-
-      setFormData({
-        route: "",
-        bus: "",
-        driver: "",
-        departureDate: "",
-        departureTime: "",
-      });
-
-      setShowModal(false);
-      setIsSubmitting(false);
-    }, 1000);
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+    const { name, value } = e.target
+    setForm(prev => ({ ...prev, [name]: name === 'baseFare' ? Number(value) : value }))
   }
 
-  function handleDelete(id: string) {
-    if (confirm("Are you sure you want to cancel this trip?")) {
-      setTrips((prev) =>
-        prev.map((trip) =>
-          trip.id === id ? { ...trip, status: "cancelled" as const } : trip,
-        ),
-      );
-      toast.success("Trip cancelled");
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (editingTrip) {
+      updateMutation.mutate({ id: editingTrip.id, payload: { departureDate: form.departureDate, departureTime: form.departureTime, arrivalTime: form.arrivalTime, baseFare: form.baseFare, driverId: form.driverId || undefined, notes: form.notes } })
+    } else {
+      createMutation.mutate({ ...form, driverId: form.driverId || undefined })
     }
   }
 
-  function handleView(trip: Trip) {
-    toast.success(`Viewing ${trip.tripRef}`);
-  }
-
-  function handleEdit(trip: Trip) {
-    setFormData({
-      route: trip.route,
-      bus: trip.bus,
-      driver: trip.driver,
-      departureDate: trip.departureDate,
-      departureTime: trip.departureTime,
-    });
-    setShowModal(true);
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "scheduled":
-        return "bg-blue-100 text-blue-800";
-      case "in-progress":
-        return "bg-emerald-100 text-emerald-800";
-      case "completed":
-        return "bg-slate-100 text-slate-800";
-      case "cancelled":
-        return "bg-rose-100 text-rose-800";
-      default:
-        return "bg-slate-100 text-slate-800";
-    }
-  };
-
-  const occupancyRate = (booked: number, total: number) => {
-    return Math.round((booked / total) * 100);
-  };
-
-  const totalRevenue = trips
-    .filter((t) => t.status === "completed" || t.status === "in-progress")
-    .reduce((sum, t) => sum + t.revenue, 0);
-
-  const scheduledTrips = trips.filter((t) => t.status === "scheduled").length;
-  const completedTrips = trips.filter((t) => t.status === "completed").length;
+  const trips = tripsQuery.data ?? []
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
 
   return (
     <section className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Trips</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Schedule and manage bus trips
-          </p>
+          <p className="mt-1 text-sm text-slate-600">Schedule and manage bus trips</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 transition"
-        >
-          <Plus size={18} />
-          Schedule Trip
+        <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 transition">
+          <Plus size={18} /> Schedule Trip
         </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="card p-4">
-          <p className="text-sm text-slate-600">Total Trips</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">
-            {trips.length}
-          </p>
-        </div>
-        <div className="card p-4">
-          <p className="text-sm text-slate-600">Scheduled</p>
-          <p className="mt-2 text-2xl font-bold text-blue-600">
-            {scheduledTrips}
-          </p>
-        </div>
-        <div className="card p-4">
-          <p className="text-sm text-slate-600">Completed</p>
-          <p className="mt-2 text-2xl font-bold text-emerald-600">
-            {completedTrips}
-          </p>
-        </div>
-        <div className="card p-4">
-          <p className="text-sm text-slate-600">Revenue</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">
-            UGX {totalRevenue.toLocaleString()}
-          </p>
-        </div>
+        <div className="card p-4"><p className="text-sm text-slate-600">Total</p><p className="mt-2 text-2xl font-bold text-slate-900">{trips.length}</p></div>
+        <div className="card p-4"><p className="text-sm text-slate-600">Scheduled</p><p className="mt-2 text-2xl font-bold text-blue-600">{trips.filter(t => t.status === 'SCHEDULED').length}</p></div>
+        <div className="card p-4"><p className="text-sm text-slate-600">Completed</p><p className="mt-2 text-2xl font-bold text-emerald-600">{trips.filter(t => t.status === 'COMPLETED').length}</p></div>
+        <div className="card p-4"><p className="text-sm text-slate-600">Cancelled</p><p className="mt-2 text-2xl font-bold text-rose-600">{trips.filter(t => t.status === 'CANCELLED').length}</p></div>
       </div>
 
-      {/* Table */}
+      {tripsQuery.isLoading && <div className="card flex items-center gap-3 p-6 text-slate-600"><Loader2 className="animate-spin" size={18} /> Loading trips...</div>}
+      {tripsQuery.isError && <div className="card flex items-start gap-3 border-rose-200 bg-rose-50 p-6 text-rose-700"><AlertCircle size={18} className="mt-0.5" />{getApiErrorMessage(tripsQuery.error)}</div>}
+
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Trip Ref
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Route
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Bus
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Driver
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Date & Time
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Occupancy
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Revenue
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                  Actions
-                </th>
+                {['Route', 'Bus', 'Driver', 'Date', 'Time', 'Fare', 'Seats', 'Status', 'Actions'].map(h => (
+                  <th key={h} className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {trips.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-6 py-8 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <AlertCircle size={32} className="text-slate-400" />
-                      <p className="text-slate-600">No trips scheduled yet</p>
-                    </div>
+              {trips.length === 0 && !tripsQuery.isLoading ? (
+                <tr><td colSpan={9} className="px-6 py-8 text-center text-slate-500">No trips scheduled yet</td></tr>
+              ) : trips.map(trip => (
+                <tr key={trip.id} className="hover:bg-slate-50 transition">
+                  <td className="px-6 py-3 text-sm font-medium text-slate-900">{trip.route.originCity} → {trip.route.destinationCity}</td>
+                  <td className="px-6 py-3 text-sm text-slate-600">{trip.bus.licensePlate}</td>
+                  <td className="px-6 py-3 text-sm text-slate-600">{trip.driver ? `${trip.driver.firstName} ${trip.driver.lastName}` : '—'}</td>
+                  <td className="px-6 py-3 text-sm text-slate-600">{new Date(trip.departureDate).toLocaleDateString()}</td>
+                  <td className="px-6 py-3 text-sm text-slate-600">{trip.departureTime} → {trip.arrivalTime}</td>
+                  <td className="px-6 py-3 text-sm font-semibold text-slate-900">UGX {Number(trip.baseFare).toLocaleString()}</td>
+                  <td className="px-6 py-3 text-sm text-slate-600">{trip.bookedSeats}/{trip.availableSeats + trip.bookedSeats}</td>
+                  <td className="px-6 py-3 text-sm">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[trip.status] ?? 'bg-slate-100 text-slate-800'}`}>{trip.status}</span>
+                  </td>
+                  <td className="px-6 py-3 text-sm">
+                    {trip.status === 'SCHEDULED' && (
+                      <button onClick={() => openEdit(trip)} className="rounded px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 transition">Edit</button>
+                    )}
                   </td>
                 </tr>
-              ) : (
-                trips.map((trip) => (
-                  <tr key={trip.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-3 text-sm font-medium text-blue-600">
-                      {trip.tripRef}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-slate-900">
-                      {trip.route}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-slate-600">
-                      {trip.bus}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-slate-600">
-                      {trip.driver}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-slate-600">
-                      <div>
-                        <p>
-                          {new Date(trip.departureDate).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {trip.departureTime}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3 text-sm">
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {trip.seatsBooked}/{trip.totalSeats}
-                        </p>
-                        <div className="mt-1 w-20 bg-slate-200 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full"
-                            style={{
-                              width: `${occupancyRate(trip.seatsBooked, trip.totalSeats)}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3 text-sm font-semibold text-slate-900">
-                      UGX {trip.revenue.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-3 text-sm">
-                      <span
-                        className={`inline-block rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusColor(trip.status)}`}
-                      >
-                        {trip.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleView(trip)}
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition"
-                          title="View"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(trip)}
-                          disabled={trip.status !== "scheduled"}
-                          className="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition disabled:opacity-50"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(trip.id)}
-                          disabled={trip.status === "cancelled"}
-                          className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded transition disabled:opacity-50"
-                          title="Cancel"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="card max-h-[90vh] w-full max-w-md overflow-y-auto">
-            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200 p-6">
-              <h2 className="text-xl font-semibold text-slate-900">
-                Schedule Trip
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-slate-500 hover:text-slate-700 transition"
-              >
-                <X size={20} />
-              </button>
+              <h2 className="text-xl font-semibold text-slate-900">{editingTrip ? 'Edit Trip' : 'Schedule Trip'}</h2>
+              <button onClick={() => setShowModal(false)}><X size={20} className="text-slate-500" /></button>
             </div>
-
-            {/* Modal Content */}
-            <form onSubmit={handleSubmit} className="space-y-5 p-6">
+            <form onSubmit={handleSubmit} className="space-y-4 p-6">
+              {!editingTrip && (
+                <>
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Route</span>
+                    <select name="routeId" value={form.routeId} onChange={handleChange} required className="input">
+                      <option value="">Select route</option>
+                      {(routesQuery.data ?? []).filter(r => r.isActive).map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Bus</span>
+                    <select name="busId" value={form.busId} onChange={handleChange} required className="input">
+                      <option value="">Select bus</option>
+                      {(busesQuery.data ?? []).filter(b => b.status === 'ACTIVE').map(b => (
+                        <option key={b.id} value={b.id}>{b.licensePlate} — {b.make} {b.model}</option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              )}
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700">
-                  Route
-                </span>
-                <select
-                  name="route"
-                  value={formData.route}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
-                  required
-                >
-                  <option value="">Select Route</option>
-                  <option value="Kampala - Masaka">Kampala - Masaka</option>
-                  <option value="Kampala - Jinja">Kampala - Jinja</option>
-                  <option value="Kampala - Fort Portal">
-                    Kampala - Fort Portal
-                  </option>
-                  <option value="Masaka - Mbarara">Masaka - Mbarara</option>
-                  <option value="Jinja - Soroti">Jinja - Soroti</option>
+                <span className="mb-1 block text-sm font-medium text-slate-700">Driver (optional)</span>
+                <select name="driverId" value={form.driverId} onChange={handleChange} className="input">
+                  <option value="">No driver assigned</option>
+                  {(driversQuery.data ?? []).filter(d => d.status === 'ACTIVE').map(d => (
+                    <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
+                  ))}
                 </select>
               </label>
-
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700">
-                  Bus
-                </span>
-                <select
-                  name="bus"
-                  value={formData.bus}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
-                  required
-                >
-                  <option value="">Select Bus</option>
-                  <option value="UBK-001">UBK-001 (Scania K310)</option>
-                  <option value="UBK-002">UBK-002 (Volvo B9R)</option>
-                  <option value="UBK-004">UBK-004 (Scania K420)</option>
-                </select>
+                <span className="mb-1 block text-sm font-medium text-slate-700">Departure Date</span>
+                <input name="departureDate" type="date" value={form.departureDate} onChange={handleChange} required className="input" />
               </label>
-
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block"><span className="mb-1 block text-sm font-medium text-slate-700">Departure Time</span><input name="departureTime" type="time" value={form.departureTime} onChange={handleChange} required className="input" /></label>
+                <label className="block"><span className="mb-1 block text-sm font-medium text-slate-700">Arrival Time</span><input name="arrivalTime" type="time" value={form.arrivalTime} onChange={handleChange} required className="input" /></label>
+              </div>
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700">
-                  Driver
-                </span>
-                <select
-                  name="driver"
-                  value={formData.driver}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
-                  required
-                >
-                  <option value="">Select Driver</option>
-                  <option value="John Doe">John Doe</option>
-                  <option value="Jane Smith">Jane Smith</option>
-                  <option value="Peter Johnson">Peter Johnson</option>
-                  <option value="Grace Lee">Grace Lee</option>
-                  <option value="David Brown">David Brown</option>
-                </select>
+                <span className="mb-1 block text-sm font-medium text-slate-700">Base Fare (UGX)</span>
+                <input name="baseFare" type="number" value={form.baseFare} onChange={handleChange} required className="input" min={1000} step={1000} />
               </label>
-
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700">
-                  Departure Date
-                </span>
-                <input
-                  type="date"
-                  name="departureDate"
-                  value={formData.departureDate}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
-                  required
-                />
+                <span className="mb-1 block text-sm font-medium text-slate-700">Notes (optional)</span>
+                <input name="notes" value={form.notes} onChange={handleChange} className="input" placeholder="e.g. Morning express" />
               </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700">
-                  Departure Time
-                </span>
-                <input
-                  type="time"
-                  name="departureTime"
-                  value={formData.departureTime}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
-                  required
-                />
-              </label>
-
-              {/* Modal Actions */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 rounded-lg border border-slate-200 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Scheduling...
-                    </>
-                  ) : (
-                    "Schedule Trip"
-                  )}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                  {isSubmitting && <Loader2 size={15} className="animate-spin" />}
+                  {editingTrip ? 'Save Changes' : 'Schedule Trip'}
                 </button>
               </div>
             </form>
@@ -535,5 +188,5 @@ export default function CompanyTripsPage() {
         </div>
       )}
     </section>
-  );
+  )
 }

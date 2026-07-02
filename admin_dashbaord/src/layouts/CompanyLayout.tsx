@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  BarChart3,
   Bell,
   Bus,
   CalendarCheck,
@@ -24,7 +23,6 @@ const navItems = [
   { to: "/company/trips", label: "Trips", icon: CalendarCheck },
   { to: "/company/bookings", label: "Bookings", icon: Ticket },
   { to: "/company/drivers", label: "Drivers", icon: Users },
-  { to: "/company/reports", label: "Reports", icon: BarChart3 },
   { to: "/company/settings", label: "Settings", icon: Cog },
 ];
 
@@ -36,13 +34,11 @@ export default function CompanyLayout() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(event.target as Node)) {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -54,27 +50,87 @@ export default function CompanyLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <aside className="sidebar-width fixed inset-y-0 left-0 border-r border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center border-b border-slate-200 p-5">
-          <div className="rounded bg-blue-600 p-2 text-white">
-            <Bus size={14} />
+      {/* Full-width topnav */}
+      <header className="topnav-height fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-5 shadow-sm">
+        {/* Left: brand + company name */}
+        <div className="flex items-center gap-3">
+          <div className="rounded bg-blue-600 p-1.5 text-white">
+            <Bus size={16} />
           </div>
-          <h1 className="menu-text ml-3 text-xl font-bold truncate">
+          <span className="text-base font-bold text-slate-900 truncate max-w-[200px]">
             {user?.companyName || "Company"}
-          </h1>
+          </span>
         </div>
 
-        <nav className="space-y-2 p-4">
+        {/* Centre: search */}
+        <div className="hidden md:flex flex-1 justify-center px-8">
+          <div className="relative w-80">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:bg-white"
+              placeholder="Search..."
+              type="text"
+            />
+          </div>
+        </div>
+
+        {/* Right: bell + user menu */}
+        <div className="flex items-center gap-3">
+          <button className="rounded-full p-2 text-slate-500 hover:bg-slate-100" type="button">
+            <Bell size={18} />
+          </button>
+
+          <div className="relative" ref={menuRef}>
+            <button
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50"
+              onClick={() => setMenuOpen((o) => !o)}
+              type="button"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                <UserCircle2 size={17} />
+              </div>
+              <div className="hidden text-left md:block">
+                <p className="max-w-[140px] truncate text-sm font-medium leading-tight">{user?.name}</p>
+                <p className="max-w-[140px] truncate text-xs text-slate-500">{user?.email}</p>
+              </div>
+              <ChevronDown size={15} className="text-slate-400" />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-11 z-40 w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                <button
+                  className="flex w-full items-center px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                  onClick={() => { setMenuOpen(false); navigate("/company/settings"); }}
+                  type="button"
+                >
+                  <Cog size={15} className="mr-2" /> Edit profile
+                </button>
+                <button
+                  className="flex w-full items-center px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+                  onClick={handleLogout}
+                  type="button"
+                >
+                  <LogOut size={15} className="mr-2" /> Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Sidebar — starts below topnav */}
+      <aside className="sidebar-width fixed bottom-0 left-0 top-[68px] z-20 border-r border-slate-200 bg-white shadow-sm overflow-y-auto">
+        <nav className="space-y-1 p-3">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === "/company"}
               className={({ isActive }) =>
-                `flex items-center rounded-lg px-3 py-3 text-sm font-medium ${
+                `flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-blue-100 text-blue-700"
-                    : "text-slate-700 hover:bg-slate-100"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`
               }
             >
@@ -85,80 +141,8 @@ export default function CompanyLayout() {
         </nav>
       </aside>
 
+      {/* Main content */}
       <main className="main-offset">
-        <header className="border-b border-slate-200 bg-white">
-          <div className="flex items-center justify-between p-4">
-            {/* Left side: Search */}
-            <div className="hidden items-center gap-4 md:flex flex-1">
-              <div className="relative w-80">
-                <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  className="w-full rounded-md border border-slate-300 py-2.5 pl-9 pr-3 text-sm"
-                  placeholder="Search..."
-                  type="text"
-                />
-              </div>
-            </div>
-
-            {/* Right side: Notification and User Menu */}
-            <div className="flex items-center gap-4">
-              <button
-                className="rounded-full p-2 text-slate-600 hover:bg-slate-100"
-                type="button"
-              >
-                <Bell size={18} />
-              </button>
-
-              <div className="relative" ref={menuRef}>
-                <button
-                  className="flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50"
-                  onClick={() => setMenuOpen((open) => !open)}
-                  type="button"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                    <UserCircle2 size={18} />
-                  </div>
-                  <div className="ml-2 text-left">
-                    <p className="max-w-[180px] truncate text-sm font-medium">
-                      {user?.name}
-                    </p>
-                    <p className="max-w-[180px] truncate text-xs text-slate-500">
-                      {user?.email}
-                    </p>
-                  </div>
-                  <ChevronDown size={16} className="ml-2 text-slate-500" />
-                </button>
-
-                {menuOpen ? (
-                  <div className="absolute right-0 top-12 z-40 w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                    <button
-                      className="flex w-full items-center px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        navigate("/company/settings");
-                      }}
-                      type="button"
-                    >
-                      <Cog size={15} className="mr-2" />
-                      Edit profile
-                    </button>
-                    <button
-                      className="flex w-full items-center px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-                      onClick={handleLogout}
-                      type="button"
-                    >
-                      <LogOut size={15} className="mr-2" />
-                      Logout
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </header>
         <section className="p-6">
           <Outlet />
         </section>

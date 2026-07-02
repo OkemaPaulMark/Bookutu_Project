@@ -20,6 +20,21 @@ export type CompanyRecord = {
   createdAt: string
 }
 
+export type PlatformStats = {
+  companies: { total: number; active: number; pending: number; suspended: number; inactive: number }
+  totalTrips: number
+  totalBookings: number
+  totalRevenue: number
+  monthlyRevenue: { month: string; revenue: number }[]
+  recentCompanies: { id: string; name: string; city: string; status: string; createdAt: string }[]
+  topCompanies: { id: string; name: string; city: string; status: string; bookings: number; trips: number; buses: number }[]
+}
+
+export async function getPlatformStatsRequest() {
+  const { data } = await api.get<{ data: PlatformStats }>('/companies/platform/stats')
+  return data.data
+}
+
 export async function listCompaniesRequest() {
   const { data } = await api.get<{ data: CompanyRecord[] }>('/companies')
   return data.data

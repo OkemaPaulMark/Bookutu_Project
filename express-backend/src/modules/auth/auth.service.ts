@@ -1,6 +1,6 @@
 import { authRepository } from './auth.repository.js'
 import { AppError } from '../../utils/AppError.js'
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/token.js'
+import { blacklistToken, signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/token.js'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../config/prisma.js'
 import { env } from '../../config/env.js'
@@ -80,10 +80,23 @@ export const authService = {
       throw new AppError(401, 'Invalid refresh token')
     }
 
+    // Rotate: blacklist the used refresh token
+    blacklistToken(refreshToken)
+
     return {
       access: signAccessToken(buildTokenPayload(user)),
       refresh: signRefreshToken(buildTokenPayload(user))
     }
+  },
+
+  async logout(refreshToken: string) {
+    // Validate it's a real token before blacklisting
+    try {
+      verifyRefreshToken(refreshToken)
+    } catch {
+      throw new AppError(400, 'Invalid refresh token')
+    }
+    blacklistToken(refreshToken)
   },
 
   async me(userId: string) {
@@ -287,6 +300,40 @@ export const authService = {
       refresh: signRefreshToken(tokenPayload),
       user: serializeUser(hydratedUser)
     }
+  },
+
+  async updateProfile(userId: string, payload: {
+    firstName: string
+    lastName: string
+    phoneNumber?: string | null
+  }) {
+    const user = await authRepository.findUserById(userId)
+    if (!user) throw new AppError(404, 'User not found')
+
+    const updated = await authRepository.updateUser(userId, {
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      phoneNumber: payload.phoneNumber ?? null
+    })
+
+    const hydrated = await authRepository.findUserById(updated.id)
+    if (!hydrated) throw new AppError(404, 'User not found')
+    return serializeUser(hydrated)
+  },
+
+  async changePassword(userId: string, payload: {
+    currentPassword: string
+    newPassword: string
+  }) {
+    const user = await authRepository.findUserById(userId)
+    if (!user) throw new AppError(404, 'User not found')
+
+    const valid = await bcrypt.compare(payload.currentPassword, user.passwordHash)
+    if (!valid) throw new AppError(400, 'Current password is incorrect')
+
+    const passwordHash = await bcrypt.hash(payload.newPassword, 10)
+    await authRepository.updateUser(userId, { passwordHash })
+    return { message: 'Password changed successfully' }
   },
 
   async bootstrapSuperAdmin(payload: {

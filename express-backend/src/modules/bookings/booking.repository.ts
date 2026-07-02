@@ -5,6 +5,8 @@ export const bookingRepository = {
     companyId?: string | null
     status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
     search?: string
+    skip?: number
+    take?: number
   }) {
     return prisma.booking.findMany({
       where: {
@@ -23,7 +25,9 @@ export const bookingRepository = {
         seat: true,
         passenger: { select: { id: true, email: true, firstName: true, lastName: true } }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip: params.skip,
+      take: params.take
     })
   },
 

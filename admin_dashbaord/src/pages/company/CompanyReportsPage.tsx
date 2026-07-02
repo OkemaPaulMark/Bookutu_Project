@@ -1,6 +1,5 @@
 import {
   ArrowUpRight,
-  BarChart3,
   Bus,
   CalendarClock,
   CircleDollarSign,

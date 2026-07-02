@@ -6,6 +6,8 @@ export const tripRepository = {
     status?: string
     departureDate?: string
     routeId?: string
+    skip?: number
+    take?: number
   }) {
     return prisma.trip.findMany({
       where: {
@@ -20,7 +22,9 @@ export const tripRepository = {
         driver: true,
         _count: { select: { bookings: true } }
       },
-      orderBy: [{ departureDate: 'asc' }, { departureTime: 'asc' }]
+      orderBy: [{ departureDate: 'asc' }, { departureTime: 'asc' }],
+      skip: params.skip,
+      take: params.take
     })
   },
 

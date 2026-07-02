@@ -18,7 +18,6 @@ import CompanyRoutesPage from "@pages/company/CompanyRoutesPage";
 import CompanyTripsPage from "@pages/company/CompanyTripsPage";
 import CompanyBookingsPage from "@pages/company/CompanyBookingsPage";
 import CompanyDriversPage from "@pages/company/CompanyDriversPage";
-import CompanyReportsPage from "@pages/company/CompanyReportsPage";
 import CompanySettingsPage from "@pages/company/CompanySettingsPage";
 import { useAuthStore } from "@store/authStore";
 
@@ -66,7 +65,6 @@ export default function App() {
           <Route path="trips" element={<CompanyTripsPage />} />
           <Route path="bookings" element={<CompanyBookingsPage />} />
           <Route path="drivers" element={<CompanyDriversPage />} />
-          <Route path="reports" element={<CompanyReportsPage />} />
           <Route path="settings" element={<CompanySettingsPage />} />
         </Route>
       </Route>

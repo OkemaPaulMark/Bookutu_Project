@@ -25,6 +25,16 @@ export async function refreshController(req: Request, res: Response) {
   res.json(data)
 }
 
+export async function logoutController(req: Request, res: Response) {
+  const refreshToken = req.body?.refresh as string | undefined
+  if (!refreshToken) {
+    throw new AppError(400, 'refresh token is required')
+  }
+
+  await authService.logout(refreshToken)
+  res.json({ message: 'Logged out successfully' })
+}
+
 export async function meController(req: Request, res: Response) {
   if (!req.authUser) {
     throw new AppError(401, 'Authentication required')
@@ -56,6 +66,18 @@ export async function setPasswordController(req: Request, res: Response) {
   const payload = setPasswordSchema.parse(req.body)
   const data = await authService.setPassword(payload)
   res.json(data)
+}
+
+export async function updateProfileController(req: Request, res: Response) {
+  if (!req.authUser) throw new AppError(401, 'Authentication required')
+  const user = await authService.updateProfile(req.authUser.id, req.body)
+  res.json({ user })
+}
+
+export async function changePasswordController(req: Request, res: Response) {
+  if (!req.authUser) throw new AppError(401, 'Authentication required')
+  const result = await authService.changePassword(req.authUser.id, req.body)
+  res.json(result)
 }
 
 export async function bootstrapSuperAdminController(req: Request, res: Response) {

@@ -14,21 +14,30 @@ body {
   @apply rounded-xl border border-slate-200 bg-white shadow-card;
 }
 
+.input {
+  @apply w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:bg-white;
+}
+
 .sidebar-width {
   width: 260px;
 }
 
 .main-offset {
   margin-left: 260px;
+  padding-top: 68px;
+}
+
+.topnav-height {
+  height: 68px;
 }
 
 @media (max-width: 768px) {
   .sidebar-width {
-    width: 82px;
+    width: 64px;
   }
 
   .main-offset {
-    margin-left: 82px;
+    margin-left: 64px;
   }
 
   .menu-text {

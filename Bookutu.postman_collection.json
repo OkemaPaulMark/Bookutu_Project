@@ -1,0 +1,556 @@
+{
+  "info": {
+    "name": "Bookutu API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:4000/api/v1" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:4000/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Bootstrap Super Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/bootstrap-super-admin",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@bookutu.com\",\n  \"firstName\": \"Super\",\n  \"lastName\": \"Admin\",\n  \"phoneNumber\": \"+256700000000\",\n  \"password\": \"Admin@1234\",\n  \"confirmPassword\": \"Admin@1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Passenger",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"passenger@example.com\",\n  \"username\": \"johndoe\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phoneNumber\": \"+256711000000\",\n  \"password\": \"Pass@1234\",\n  \"confirmPassword\": \"Pass@1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access) pm.collectionVariables.set('access_token', res.access);",
+                  "if (res.refresh) pm.collectionVariables.set('refresh_token', res.refresh);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@bookutu.com\",\n  \"password\": \"Admin@1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access) pm.collectionVariables.set('access_token', res.access);",
+                  "if (res.refresh) pm.collectionVariables.set('refresh_token', res.refresh);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/logout",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Get Password Setup Details",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/password-setup/:token",
+            "header": []
+          }
+        },
+        {
+          "name": "Set Password",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/set-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<password_setup_token>\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Staff\",\n  \"phoneNumber\": \"+256722000000\",\n  \"password\": \"Staff@1234\",\n  \"confirmPassword\": \"Staff@1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Invite Company Staff (Super Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register/staff",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"staff@buscompany.com\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Staff\",\n  \"phoneNumber\": \"+256722000000\",\n  \"companyId\": \"<company_id>\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "List Companies",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/companies?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Get Company",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/companies/:id",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Create Company (Super Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/companies",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kampala Express\",\n  \"email\": \"info@kampalaexpress.com\",\n  \"phoneNumber\": \"+256700111222\",\n  \"address\": \"Plot 12, Kampala Road\",\n  \"city\": \"Kampala\",\n  \"state\": \"Central\",\n  \"country\": \"Uganda\",\n  \"registrationNumber\": \"REG-2024-001\",\n  \"licenseNumber\": \"LIC-2024-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/companies/:id",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"description\": \"Premium bus services across Uganda\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fleet",
+      "item": [
+        {
+          "name": "Buses",
+          "item": [
+            {
+              "name": "List Buses",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/fleet/buses",
+                "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+              }
+            },
+            {
+              "name": "Get Bus",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/fleet/buses/:id",
+                "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+              }
+            },
+            {
+              "name": "Create Bus",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/fleet/buses",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"licensePlate\": \"UAA 123B\",\n  \"model\": \"Coaster\",\n  \"make\": \"Toyota\",\n  \"year\": 2022,\n  \"totalSeats\": 32,\n  \"busType\": \"MINIBUS\",\n  \"hasAc\": true,\n  \"hasWifi\": false,\n  \"hasChargingPorts\": false\n}"
+                }
+              }
+            },
+            {
+              "name": "Update Bus",
+              "request": {
+                "method": "PATCH",
+                "url": "{{base_url}}/fleet/buses/:id",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"MAINTENANCE\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Routes",
+          "item": [
+            {
+              "name": "List Routes",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/fleet/routes",
+                "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+              }
+            },
+            {
+              "name": "Get Route",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/fleet/routes/:id",
+                "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+              }
+            },
+            {
+              "name": "Create Route",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/fleet/routes",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Kampala - Gulu Express\",\n  \"originCity\": \"Kampala\",\n  \"originTerminal\": \"Kampala Coach Terminal\",\n  \"destinationCity\": \"Gulu\",\n  \"destinationTerminal\": \"Gulu Bus Park\",\n  \"distanceKm\": 340,\n  \"estimatedDurationHours\": 5,\n  \"baseFare\": 25000\n}"
+                }
+              }
+            },
+            {
+              "name": "Update Route",
+              "request": {
+                "method": "PATCH",
+                "url": "{{base_url}}/fleet/routes/:id",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": false\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Drivers",
+          "item": [
+            {
+              "name": "List Drivers",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/fleet/drivers",
+                "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+              }
+            },
+            {
+              "name": "Get Driver",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/fleet/drivers/:id",
+                "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+              }
+            },
+            {
+              "name": "Create Driver",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/fleet/drivers",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"Moses\",\n  \"lastName\": \"Okello\",\n  \"phoneNumber\": \"+256701000000\",\n  \"email\": \"moses@example.com\",\n  \"licenseNumber\": \"DL-2024-001\",\n  \"licenseExpiryDate\": \"2027-01-01\",\n  \"dateOfBirth\": \"1990-05-15\",\n  \"hireDate\": \"2024-01-01\",\n  \"employeeId\": \"EMP-001\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Update Driver",
+              "request": {
+                "method": "PATCH",
+                "url": "{{base_url}}/fleet/drivers/:id",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "item": [
+        {
+          "name": "List Trips",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/trips?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Get Trip",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/trips/:id",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Create Trip",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/trips",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"routeId\": \"<route_id>\",\n  \"busId\": \"<bus_id>\",\n  \"driverId\": \"<driver_id>\",\n  \"departureDate\": \"2025-06-01\",\n  \"departureTime\": \"08:00\",\n  \"arrivalTime\": \"12:00\",\n  \"baseFare\": 25000,\n  \"notes\": \"Morning express\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Trip",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/trips/:id",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"notes\": \"Trip completed successfully\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Trip Manifest",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/trips/:id/manifest",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Trip Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/trips/dashboard/stats",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "List Bookings",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/bookings?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Get Booking",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/bookings/:id",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/bookings",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripId\": \"<trip_id>\",\n  \"seatId\": \"<seat_id>\",\n  \"passengerName\": \"John Doe\",\n  \"passengerPhone\": \"+256711000000\",\n  \"passengerEmail\": \"john@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/bookings/:id/cancel",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/payments?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Create Payment (Cash)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/payments",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"<booking_id>\",\n  \"paymentMethod\": \"CASH\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Payment (Mobile Money)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/payments",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"<booking_id>\",\n  \"paymentMethod\": \"MOBILE_MONEY\",\n  \"mobileMoneyNumber\": \"+256711000000\",\n  \"mobileMoneyProvider\": \"MTN\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Announcements",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/notifications",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        },
+        {
+          "name": "Create Announcement (Super Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/notifications",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Service Update\",\n  \"message\": \"All routes are operating normally.\",\n  \"priority\": \"low\",\n  \"targetAudience\": \"all\",\n  \"isActive\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "List System Logs (Super Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/notifications/logs?limit=50",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import {
+	platformStatsController,
 	createCompanyController,
 	getCompanyController,
 	listCompaniesController,
@@ -9,6 +10,7 @@ import { requireAuth, requireRole } from '../../middlewares/auth.middleware.js'
 
 export const companyRouter = Router()
 
+companyRouter.get('/platform/stats', requireAuth, requireRole(['SUPER_ADMIN']), platformStatsController)
 companyRouter.get('/', requireAuth, listCompaniesController)
 companyRouter.get('/:id', requireAuth, getCompanyController)
 companyRouter.post('/', requireAuth, requireRole(['SUPER_ADMIN']), createCompanyController)

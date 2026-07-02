@@ -14,7 +14,9 @@ export async function listBookingsController(req: Request, res: Response) {
     status: typeof req.query.status === 'string'
       ? req.query.status as 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
       : undefined,
-    search: typeof req.query.search === 'string' ? req.query.search : undefined
+    search: typeof req.query.search === 'string' ? req.query.search : undefined,
+    page: req.query.page ? Number(req.query.page) : undefined,
+    limit: req.query.limit ? Number(req.query.limit) : undefined
   })
   res.json({ data: bookings })
 }

@@ -6,6 +6,8 @@ export const paymentRepository = {
     userId?: string
     status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED'
     method?: 'CASH' | 'MOBILE_MONEY' | 'CARD' | 'BANK_TRANSFER' | 'WALLET'
+    skip?: number
+    take?: number
   }) {
     return prisma.payment.findMany({
       where: {
@@ -22,7 +24,9 @@ export const paymentRepository = {
         },
         user: { select: { id: true, email: true, firstName: true, lastName: true } }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip: params.skip,
+      take: params.take
     })
   },
 

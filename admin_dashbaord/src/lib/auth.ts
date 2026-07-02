@@ -34,6 +34,16 @@ export async function loginRequest(payload: { email: string, password: string })
   return data
 }
 
+export async function updateProfileRequest(payload: { firstName: string; lastName: string; phoneNumber?: string | null }) {
+  const { data } = await api.patch<{ user: AuthApiUser }>('/auth/me', payload)
+  return data.user
+}
+
+export async function changePasswordRequest(payload: { currentPassword: string; newPassword: string }) {
+  const { data } = await api.patch<{ message: string }>('/auth/me/password', payload)
+  return data
+}
+
 export async function meRequest(accessToken?: string) {
   const { data } = await api.get<{ user: AuthApiUser }>('/auth/me', {
     headers: accessToken

@@ -12,7 +12,9 @@ export async function listTripsController(req: Request, res: Response) {
     companyId: req.authUser.companyId,
     status: req.query.status as string | undefined,
     departureDate: req.query.departureDate as string | undefined,
-    routeId: req.query.routeId as string | undefined
+    routeId: req.query.routeId as string | undefined,
+    page: req.query.page ? Number(req.query.page) : undefined,
+    limit: req.query.limit ? Number(req.query.limit) : undefined
   })
 
   res.json({ data: trips })
@@ -76,10 +78,26 @@ export async function tripManifestController(req: Request, res: Response) {
 }
 
 export async function tripStatsController(req: Request, res: Response) {
-  if (!req.authUser?.companyId) {
-    throw new AppError(400, 'company scope required')
+  if (!req.authUser) {
+    throw new AppError(401, 'Authentication required')
   }
 
-  const stats = await tripService.dashboardStats({ companyId: req.authUser.companyId })
+  // SUPER_ADMIN can pass ?companyId=... or gets platform-wide stats (empty)
+  const companyId = req.authUser.companyId ?? (req.query.companyId as string | undefined)
+
+  if (!companyId) {
+    // Super admin with no company filter — return zeroed stats
+    res.json({
+      data: {
+        totalTrips: 0, scheduledTrips: 0, completedTrips: 0, cancelledTrips: 0, todayTrips: 0,
+        totalRevenue: 0, totalBookings: 0, confirmedBookings: 0, pendingBookings: 0, cancelledBookings: 0,
+        fleet: { active: 0, maintenance: 0, inactive: 0, total: 0 },
+        activeRoutes: 0, activeDrivers: 0, routePerformance: [], monthlyRevenue: []
+      }
+    })
+    return
+  }
+
+  const stats = await tripService.dashboardStats({ companyId })
   res.json({ data: stats })
 }

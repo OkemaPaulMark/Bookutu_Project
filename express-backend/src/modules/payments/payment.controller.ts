@@ -16,7 +16,9 @@ export async function listPaymentsController(req: Request, res: Response) {
       : undefined,
     method: typeof req.query.method === 'string'
       ? req.query.method as 'CASH' | 'MOBILE_MONEY' | 'CARD' | 'BANK_TRANSFER' | 'WALLET'
-      : undefined
+      : undefined,
+    page: req.query.page ? Number(req.query.page) : undefined,
+    limit: req.query.limit ? Number(req.query.limit) : undefined
   })
 
   res.json({ data: payments })

@@ -1,225 +1,269 @@
-import { FormEvent, useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Building2, Loader2, Save } from "lucide-react";
-import toast from "react-hot-toast";
-import { getApiErrorMessage } from "@/lib/api";
-import { getCompanyRequest, updateCompanyRequest } from "@/lib/companies";
-import { useAuthStore } from "@store/authStore";
+import { FormEvent, useEffect, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Building2, KeyRound, Loader2, Save, UserCircle2 } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { getCompanyRequest, updateCompanyRequest } from '@/lib/companies'
+import { changePasswordRequest, updateProfileRequest } from '@/lib/auth'
+import { useAuthStore } from '@store/authStore'
+
+type Tab = 'company' | 'profile' | 'password'
+
+const tabs: { id: Tab; label: string; icon: typeof Building2 }[] = [
+  { id: 'company', label: 'Company Profile', icon: Building2 },
+  { id: 'profile', label: 'Personal Profile', icon: UserCircle2 },
+  { id: 'password', label: 'Change Password', icon: KeyRound },
+]
+
+function Field({ label, value, onChange, type = 'text', disabled }: {
+  label: string; value: string; onChange: (v: string) => void
+  type?: string; disabled?: boolean
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <input
+        className="input"
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled}
+      />
+    </label>
+  )
+}
 
 export default function CompanySettingsPage() {
-  const user = useAuthStore((state) => state.user);
-  const queryClient = useQueryClient();
-  const companyId = user?.companyId ?? "";
+  const user = useAuthStore(s => s.user)
+  const queryClient = useQueryClient()
+  const companyId = user?.companyId ?? ''
+  const [tab, setTab] = useState<Tab>('company')
 
+  // Company form state
   const companyQuery = useQuery({
-    queryKey: ["company", companyId],
+    queryKey: ['company', companyId],
     queryFn: () => getCompanyRequest(companyId),
     enabled: Boolean(companyId),
-  });
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [registrationNumber, setRegistrationNumber] = useState("");
-  const [licenseNumber, setLicenseNumber] = useState("");
+  })
+  const [cName, setCName] = useState('')
+  const [cEmail, setCEmail] = useState('')
+  const [cPhone, setCPhone] = useState('')
+  const [cAddress, setCAddress] = useState('')
+  const [cCity, setCCity] = useState('')
+  const [cState, setCState] = useState('')
+  const [cLicense, setCLicense] = useState('')
+  const [cWebsite, setCWebsite] = useState('')
 
   useEffect(() => {
-    if (!companyQuery.data) return;
-    setName(companyQuery.data.name ?? "");
-    setEmail(companyQuery.data.email ?? "");
-    setPhoneNumber(companyQuery.data.phoneNumber ?? "");
-    setAddress(companyQuery.data.address ?? "");
-    setCity(companyQuery.data.city ?? "");
-    setState(companyQuery.data.state ?? "");
-    setRegistrationNumber(companyQuery.data.registrationNumber ?? "");
-    setLicenseNumber(companyQuery.data.licenseNumber ?? "");
-  }, [companyQuery.data]);
+    const d = companyQuery.data
+    if (!d) return
+    setCName(d.name ?? '')
+    setCEmail(d.email ?? '')
+    setCPhone(d.phoneNumber ?? '')
+    setCAddress(d.address ?? '')
+    setCCity(d.city ?? '')
+    setCState(d.state ?? '')
+    setCLicense(d.licenseNumber ?? '')
+    setCWebsite(d.website ?? '')
+  }, [companyQuery.data])
 
-  const updateMutation = useMutation({
-    mutationFn: () =>
-      updateCompanyRequest(companyId, {
-        name,
-        email,
-        phoneNumber,
-        address,
-        city,
-        state,
-        registrationNumber,
-        licenseNumber,
-      }),
+  const companyMutation = useMutation({
+    mutationFn: () => updateCompanyRequest(companyId, {
+      name: cName, email: cEmail, phoneNumber: cPhone,
+      address: cAddress, city: cCity, state: cState,
+      licenseNumber: cLicense, website: cWebsite,
+    }),
     onSuccess: async () => {
-      toast.success("Company details saved.");
-      await queryClient.invalidateQueries({ queryKey: ["company", companyId] });
+      toast.success('Company details saved')
+      await queryClient.invalidateQueries({ queryKey: ['company', companyId] })
     },
-  });
+    onError: () => toast.error('Failed to save company details'),
+  })
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    updateMutation.mutate();
-  }
+  // Personal profile state
+  const [firstName, setFirstName] = useState(user?.firstName ?? '')
+  const [lastName, setLastName] = useState(user?.lastName ?? '')
+  const [phone, setPhone] = useState(user?.phoneNumber ?? '')
 
-  if (!companyId) {
-    return (
-      <section className="card flex items-start gap-3 p-6 text-slate-600">
-        <AlertCircle size={18} className="mt-0.5" />
-        <p>No company is attached to this account yet.</p>
-      </section>
-    );
+  const profileMutation = useMutation({
+    mutationFn: () => updateProfileRequest({ firstName, lastName, phoneNumber: phone }),
+    onSuccess: () => toast.success('Profile updated'),
+    onError: () => toast.error('Failed to update profile'),
+  })
+
+  // Password state
+  const [currentPw, setCurrentPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+
+  const passwordMutation = useMutation({
+    mutationFn: () => changePasswordRequest({ currentPassword: currentPw, newPassword: newPw }),
+    onSuccess: () => {
+      toast.success('Password changed')
+      setCurrentPw(''); setNewPw(''); setConfirmPw('')
+    },
+    onError: () => toast.error('Failed to change password'),
+  })
+
+  function handlePasswordSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (newPw !== confirmPw) { toast.error('Passwords do not match'); return }
+    if (newPw.length < 8) { toast.error('Password must be at least 8 characters'); return }
+    passwordMutation.mutate()
   }
 
   return (
     <section className="space-y-6">
-      <header className="rounded-3xl bg-[linear-gradient(135deg,_#0f172a,_#134e4a)] p-6 text-white shadow-lg shadow-slate-900/10">
-        <p className="text-sm uppercase tracking-[0.16em] text-teal-200">
-          Company profile
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold">
-          Complete your company details
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200">
-          Finish setting up the company profile after the super admin creates
-          your account.
-        </p>
-      </header>
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+        <p className="mt-1 text-sm text-slate-500">Manage your company profile and account preferences</p>
+      </div>
 
-      <form className="card space-y-6 p-6" onSubmit={handleSubmit}>
-        <div className="grid gap-5 md:grid-cols-2">
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              Company name
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
+      <div className="flex gap-6">
+        {/* Sidebar tabs */}
+        <nav className="w-52 shrink-0 space-y-1">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                tab === t.id
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+              type="button"
+            >
+              <t.icon size={16} />
+              {t.label}
+            </button>
+          ))}
+        </nav>
 
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              Company email
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
+        {/* Panel */}
+        <div className="flex-1">
+          {/* Company Profile */}
+          {tab === 'company' && (
+            <div className="card p-6">
+              <div className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-5">
+                <div className="rounded-lg bg-blue-50 p-2 text-blue-600"><Building2 size={18} /></div>
+                <div>
+                  <h2 className="font-semibold text-slate-900">Company Profile</h2>
+                  <p className="text-sm text-slate-500">Update your company's public information</p>
+                </div>
+              </div>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              Phone number
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={phoneNumber}
-              onChange={(event) => setPhoneNumber(event.target.value)}
-            />
-          </label>
+              {companyQuery.isLoading
+                ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" /> Loading...</div>
+                : (
+                  <form
+                    className="space-y-5"
+                    onSubmit={e => { e.preventDefault(); companyMutation.mutate() }}
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <Field label="Company name" value={cName} onChange={setCName} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field label="Email address" value={cEmail} onChange={setCEmail} type="email" />
+                      </div>
+                      <Field label="Phone number" value={cPhone} onChange={setCPhone} />
+                      <Field label="Website" value={cWebsite} onChange={setCWebsite} />
+                      <div className="sm:col-span-2">
+                        <Field label="Address" value={cAddress} onChange={setCAddress} />
+                      </div>
+                      <Field label="City" value={cCity} onChange={setCCity} />
+                      <Field label="State / Region" value={cState} onChange={setCState} />
+                      <Field label="License number" value={cLicense} onChange={setCLicense} />
+                      <Field label="Registration number" value={companyQuery.data?.registrationNumber ?? ''} onChange={() => {}} disabled />
+                    </div>
 
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              Address
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              City
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={city}
-              onChange={(event) => setCity(event.target.value)}
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              State / region
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={state}
-              onChange={(event) => setState(event.target.value)}
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              Registration number
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={registrationNumber}
-              onChange={(event) => setRegistrationNumber(event.target.value)}
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              License number
-            </span>
-            <input
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              value={licenseNumber}
-              onChange={(event) => setLicenseNumber(event.target.value)}
-            />
-          </label>
-        </div>
-
-        <button
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:cursor-not-allowed disabled:bg-teal-300"
-          disabled={updateMutation.isPending || companyQuery.isLoading}
-          type="submit"
-        >
-          {updateMutation.isPending ? (
-            <Loader2 className="animate-spin" size={18} />
-          ) : (
-            <Save size={18} />
+                    <div className="flex justify-end border-t border-slate-100 pt-5">
+                      <button
+                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                        disabled={companyMutation.isPending}
+                        type="submit"
+                      >
+                        {companyMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                        Save changes
+                      </button>
+                    </div>
+                  </form>
+                )
+              }
+            </div>
           )}
-          Save company details
-        </button>
 
-        {companyQuery.isError ? (
-          <section className="card flex items-start gap-3 border-rose-200 bg-rose-50 p-5 text-rose-700">
-            <AlertCircle size={18} className="mt-0.5" />
-            <p>
-              {getApiErrorMessage(
-                companyQuery.error,
-                "Unable to load company details",
-              )}
-            </p>
-          </section>
-        ) : null}
+          {/* Personal Profile */}
+          {tab === 'profile' && (
+            <div className="card p-6">
+              <div className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-5">
+                <div className="rounded-lg bg-teal-50 p-2 text-teal-600"><UserCircle2 size={18} /></div>
+                <div>
+                  <h2 className="font-semibold text-slate-900">Personal Profile</h2>
+                  <p className="text-sm text-slate-500">Update your name and contact details</p>
+                </div>
+              </div>
 
-        {updateMutation.isError ? (
-          <section className="card flex items-start gap-3 border-rose-200 bg-rose-50 p-5 text-rose-700">
-            <AlertCircle size={18} className="mt-0.5" />
-            <p>
-              {getApiErrorMessage(
-                updateMutation.error,
-                "Unable to save company details",
-              )}
-            </p>
-          </section>
-        ) : null}
+              <form
+                className="space-y-5"
+                onSubmit={e => { e.preventDefault(); profileMutation.mutate() }}
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="First name" value={firstName} onChange={setFirstName} />
+                  <Field label="Last name" value={lastName} onChange={setLastName} />
+                  <div className="sm:col-span-2">
+                    <Field label="Phone number" value={phone} onChange={setPhone} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field label="Email address" value={user?.email ?? ''} onChange={() => {}} disabled />
+                  </div>
+                </div>
 
-        {companyQuery.data ? (
-          <section className="card flex items-start gap-3 border-slate-200 bg-slate-50 p-5 text-slate-700">
-            <Building2 size={18} className="mt-0.5 text-teal-700" />
-            <p>Complete company details are editable from this page.</p>
-          </section>
-        ) : null}
-      </form>
+                <div className="flex justify-end border-t border-slate-100 pt-5">
+                  <button
+                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                    disabled={profileMutation.isPending}
+                    type="submit"
+                  >
+                    {profileMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                    Save changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Change Password */}
+          {tab === 'password' && (
+            <div className="card p-6">
+              <div className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-5">
+                <div className="rounded-lg bg-amber-50 p-2 text-amber-600"><KeyRound size={18} /></div>
+                <div>
+                  <h2 className="font-semibold text-slate-900">Change Password</h2>
+                  <p className="text-sm text-slate-500">Use a strong password of at least 8 characters</p>
+                </div>
+              </div>
+
+              <form className="space-y-5 max-w-md" onSubmit={handlePasswordSubmit}>
+                <Field label="Current password" value={currentPw} onChange={setCurrentPw} type="password" />
+                <Field label="New password" value={newPw} onChange={setNewPw} type="password" />
+                <Field label="Confirm new password" value={confirmPw} onChange={setConfirmPw} type="password" />
+
+                <div className="flex justify-end border-t border-slate-100 pt-5">
+                  <button
+                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                    disabled={passwordMutation.isPending}
+                    type="submit"
+                  >
+                    {passwordMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
+                    Update password
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
     </section>
-  );
+  )
 }
