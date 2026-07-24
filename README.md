@@ -4,13 +4,13 @@ This repository contains the core codebase for the Bookutu Bus Booking and Manag
 
 ## Main Components
 
-- **express-backend/**: The main backend API, built with Node.js, Express, TypeScript, and Prisma ORM. It provides authentication, company management, fleet, trips, bookings, payments, and notifications APIs.
+- **django-backend/**: The main backend API, built with Django, Django REST Framework, and PostgreSQL. It provides authentication, company management, fleet, trips, bookings, payments, and notifications APIs.
 - **admin_dashbaord/**: The web-based admin dashboard for managing companies, trips, bookings, and more. Built with React, TypeScript, Vite, and Tailwind CSS. It connects to the backend for real-time management and analytics.
 - **bus_app/**: The frontend/mobile application (originally Flutter).
 
 ## Features
 
-- User authentication and registration
+- User authentication and registration (JWT access/refresh tokens with rotation and blacklisting)
 - Company and fleet management
 - Trip scheduling and manifest
 - Seat booking and payment processing
@@ -20,11 +20,12 @@ This repository contains the core codebase for the Bookutu Bus Booking and Manag
 ## Getting Started
 
 1. **Backend Setup**
-   - Navigate to `express-backend/`
-   - Install dependencies: `npm install`
-   - Set up your `.env` file with database and JWT secrets
-   - Run database migrations: `npx prisma migrate deploy`
-   - Start the server: `npm run dev`
+   - Navigate to `django-backend/`
+   - Create/activate the virtual environment: `python3 -m venv .venv && source .venv/bin/activate`
+   - Install dependencies: `pip install -r requirements.txt`
+   - Set up your `.env` file with database credentials and Django secret key
+   - Run database migrations: `python manage.py migrate`
+   - Start the server: `python manage.py runserver`
 
 2. **Admin Dashboard Setup**
    - Navigate to `admin_dashbaord/`
@@ -37,8 +38,7 @@ This repository contains the core codebase for the Bookutu Bus Booking and Manag
 
 ## Notes
 
-- All legacy Django and Firebase code has been removed or migrated.
-- The backend is fully TypeScript and Prisma-based.
+- The backend is fully Django and PostgreSQL-based.
 - For any issues, see the module-specific README files or contact the maintainers.
 
 ---

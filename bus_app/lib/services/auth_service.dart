@@ -1,18 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/app_config.dart';
+import '../models/app_user.dart';
+
+const String _baseUrl = String.fromEnvironment(
+  'BOOKUTU_API_URL',
+  defaultValue: 'http://10.0.2.2:4000',
+);
+const String _apiUrl = '$_baseUrl/api/v1';
+const String _registerEndpoint = '$_apiUrl/auth/register';
+const String _loginEndpoint = '$_apiUrl/auth/login';
 
 class AuthService {
-  Future<Map<String, dynamic>> registerUser({
+  Future<AppUser> registerUser({
     required String firstName,
     required String lastName,
     required String username,
     required String email,
     required String password,
     required String confirmPassword,
+    String? phoneNumber,
   }) async {
-    final url = Uri.parse(AppConfig.registerEndpoint);
+    final url = Uri.parse(_registerEndpoint);
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -23,6 +32,7 @@ class AuthService {
         'email': email,
         'password': password,
         'confirmPassword': confirmPassword,
+        if (phoneNumber != null && phoneNumber.isNotEmpty) 'phoneNumber': phoneNumber,
       }),
     );
 
@@ -30,24 +40,17 @@ class AuthService {
 
     if (response.statusCode == 201) {
       await _saveSession(data, email);
-      return {
-        'success': true,
-        'message': 'Registration successful',
-        'user': data['user'],
-      };
+      return AppUser.fromJson(data['user'] as Map<String, dynamic>);
     }
 
-    return {
-      'success': false,
-      'message': data['message'] ?? 'Registration failed',
-    };
+    throw Exception(data['message'] ?? 'Registration failed');
   }
 
-  Future<Map<String, dynamic>> loginUser({
+  Future<AppUser> loginUser({
     required String email,
     required String password,
   }) async {
-    final url = Uri.parse(AppConfig.loginEndpoint);
+    final url = Uri.parse(_loginEndpoint);
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -61,32 +64,19 @@ class AuthService {
 
     if (response.statusCode == 200) {
       await _saveSession(data, email);
-      return {
-        'success': true,
-        'message': 'Login successful',
-        'data': data,
-        'user': data['user'],
-      };
+      return AppUser.fromJson(data['user'] as Map<String, dynamic>);
     }
 
-    return {
-      'success': false,
-      'message': data['message'] ?? 'Login failed',
-    };
+    throw Exception(data['message'] ?? 'Login failed');
   }
 
-  Future<Map<String, dynamic>> logoutUser() async {
+  Future<void> logoutUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('email');
     await prefs.remove('username');
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
     await prefs.remove('user_data');
-
-    return {
-      'success': true,
-      'message': 'Logged out successfully from device.',
-    };
   }
 
   Future<void> _saveSession(Map<String, dynamic> data, String email) async {
@@ -111,14 +101,14 @@ class AuthService {
     return prefs.getString('refresh_token');
   }
 
-  Future<Map<String, dynamic>?> getUserData() async {
+  Future<AppUser?> getUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final userDataString = prefs.getString('user_data');
     if (userDataString == null) {
       return null;
     }
 
-    return jsonDecode(userDataString) as Map<String, dynamic>;
+    return AppUser.fromJson(jsonDecode(userDataString) as Map<String, dynamic>);
   }
 
   Future<bool> isLoggedIn() async {

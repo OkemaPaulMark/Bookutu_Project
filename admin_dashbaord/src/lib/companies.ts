@@ -88,6 +88,10 @@ export async function updateCompanyRequest(
   return data.data
 }
 
+export async function deleteCompanyRequest(companyId: string) {
+  await api.delete(`/companies/${companyId}`)
+}
+
 export async function inviteCompanyAdminRequest(payload: {
   email: string
   companyId: string

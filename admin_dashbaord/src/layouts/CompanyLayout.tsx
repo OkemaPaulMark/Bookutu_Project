@@ -8,6 +8,7 @@ import {
   Cog,
   LayoutDashboard,
   LogOut,
+  Package,
   Route,
   Search,
   Ticket,
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/company/trips", label: "Trips", icon: CalendarCheck },
   { to: "/company/bookings", label: "Bookings", icon: Ticket },
   { to: "/company/drivers", label: "Drivers", icon: Users },
+  { to: "/company/deliveries", label: "Deliveries", icon: Package },
   { to: "/company/settings", label: "Settings", icon: Cog },
 ];
 
