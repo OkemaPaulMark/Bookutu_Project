@@ -67,7 +67,13 @@ class _SeatSelectionViewState extends State<_SeatSelectionView> {
     }
 
     final preview = await controller.buildPreview();
-    if (preview == null || !mounted) return;
+    if (!mounted) return;
+    if (preview == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(controller.errorMessage ?? 'Unable to prepare booking, please try again')),
+      );
+      return;
+    }
 
     Navigator.push(
       context,

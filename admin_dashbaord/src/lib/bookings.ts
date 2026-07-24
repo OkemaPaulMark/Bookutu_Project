@@ -41,7 +41,6 @@ export async function listBookingsRequest(params?: {
   return data.data
 }
 
-export async function cancelBookingRequest(id: string) {
-  const { data } = await api.patch<{ data: BookingRecord }>(`/bookings/${id}/cancel`)
-  return data.data
+export async function deleteBookingRequest(id: string) {
+  await api.delete(`/bookings/${id}`)
 }

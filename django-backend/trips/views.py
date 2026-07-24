@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from bookings.models import Booking
-from fleet.models import Bus, Driver, Route
+from fleet.models import Bus, BusSeat, Driver, Route
 
 from .models import Trip
 from .serializers import TripSerializer
@@ -100,10 +100,39 @@ class TripViewSet(viewsets.ViewSet):
         trip = get_object_or_404(Trip, pk=pk)
         if request.user.user_type not in ('SUPER_ADMIN', 'COMPANY_STAFF') or not _check_object_access(request.user, trip):
             return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
-        serializer = TripSerializer(trip, data=_update_payload(request), partial=partial)
+
+        payload = _update_payload(request)
+
+        bus_id = payload.get('bus_id')
+        if bus_id:
+            bus = get_object_or_404(Bus, pk=bus_id)
+            if bus.company_id != trip.company_id:
+                return Response({'detail': 'Invalid bus for company.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        route_id = payload.get('route_id')
+        if route_id:
+            route = get_object_or_404(Route, pk=route_id)
+            if route.company_id != trip.company_id:
+                return Response({'detail': 'Invalid route for company.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = TripSerializer(trip, data=payload, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'data': serializer.data})
+
+    def destroy(self, request, pk=None):
+        trip = get_object_or_404(Trip, pk=pk)
+        if request.user.user_type not in ('SUPER_ADMIN', 'COMPANY_STAFF') or not _check_object_access(request.user, trip):
+            return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if trip.bookings.exclude(status='CANCELLED').exists():
+            return Response(
+                {'detail': 'Cannot delete a trip with active bookings. Cancel the bookings first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        trip.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'], url_path='dashboard/stats')
     def dashboard_stats(self, request):
@@ -165,6 +194,41 @@ class TripViewSet(viewsets.ViewSet):
             'active_drivers': Driver.objects.filter(company_id=company_id, status='ACTIVE').count(),
             'route_performance': route_performance,
             'monthly_revenue': monthly_revenue,
+        }})
+
+    @action(detail=True, methods=['get'], url_path='seats')
+    def seats(self, request, pk=None):
+        trip = get_object_or_404(Trip.objects.select_related('bus'), pk=pk)
+        if not _check_object_access(request.user, trip):
+            return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
+
+        bus_seats = list(
+            BusSeat.objects.filter(bus_id=trip.bus_id).order_by('row_number', 'seat_number')
+        )
+        booked_seat_ids = set(
+            Booking.objects.filter(trip_id=trip.id).exclude(status='CANCELLED').values_list('seat_id', flat=True)
+        )
+
+        seats_payload = []
+        booked_numbers = []
+        for index, seat in enumerate(bus_seats, start=1):
+            is_booked = seat.id in booked_seat_ids
+            seats_payload.append({
+                'seat_number': index,
+                'seat_id': seat.id,
+                'label': seat.seat_number,
+                'is_window': seat.is_window,
+                'is_aisle': seat.is_aisle,
+                'status': 'BOOKED' if is_booked else 'AVAILABLE',
+            })
+            if is_booked:
+                booked_numbers.append(index)
+
+        return Response({'data': {
+            'bus_capacity': len(bus_seats) or trip.bus.total_seats,
+            'seat_price': float(trip.base_fare),
+            'booked_seats': booked_numbers,
+            'seats': seats_payload,
         }})
 
     @action(detail=True, methods=['get'], url_path='manifest')

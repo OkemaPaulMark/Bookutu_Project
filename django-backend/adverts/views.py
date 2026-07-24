@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 
-from common.permissions import IsSuperAdmin
+from common.permissions import IsCompanyStaff
 
 from .models import Advert
 from .serializers import AdvertSerializer
@@ -12,12 +12,12 @@ class AdvertViewSet(viewsets.ViewSet):
 
     def get_permissions(self):
         if self.action in {'create', 'update', 'partial_update', 'destroy'}:
-            return [IsSuperAdmin()]
+            return [IsCompanyStaff()]
         return super().get_permissions()
 
     def list(self, request):
         queryset = Advert.objects.all()
-        if request.user.user_type != 'SUPER_ADMIN':
+        if request.user.user_type not in ('SUPER_ADMIN', 'COMPANY_STAFF'):
             queryset = queryset.filter(is_active=True)
         serializer = AdvertSerializer(queryset, many=True)
         return Response({'data': serializer.data})

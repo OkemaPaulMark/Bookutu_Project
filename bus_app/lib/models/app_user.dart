@@ -22,10 +22,10 @@ class AppUser {
       id: json['id'].toString(),
       email: json['email']?.toString() ?? '',
       username: json['username']?.toString(),
-      firstName: json['first_name']?.toString(),
-      lastName: json['last_name']?.toString(),
-      phoneNumber: json['phone_number']?.toString(),
-      userType: json['user_type']?.toString() ?? 'PASSENGER',
+      firstName: json['firstName']?.toString(),
+      lastName: json['lastName']?.toString(),
+      phoneNumber: json['phoneNumber']?.toString(),
+      userType: json['userType']?.toString() ?? 'PASSENGER',
     );
   }
 
@@ -33,9 +33,9 @@ class AppUser {
         'id': id,
         'email': email,
         'username': username,
-        'first_name': firstName,
-        'last_name': lastName,
-        'phone_number': phoneNumber,
-        'user_type': userType,
+        'firstName': firstName,
+        'lastName': lastName,
+        'phoneNumber': phoneNumber,
+        'userType': userType,
       };
 }

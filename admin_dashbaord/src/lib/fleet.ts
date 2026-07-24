@@ -9,9 +9,6 @@ export type BusRecord = {
   year: number
   totalSeats: number
   busType: string
-  hasAc: boolean
-  hasWifi: boolean
-  hasChargingPorts: boolean
   hasEntertainment: boolean
   hasRestroom: boolean
   status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE'
@@ -81,9 +78,6 @@ export async function createBusRequest(payload: {
   year: number
   totalSeats: number
   busType: string
-  hasAc?: boolean
-  hasWifi?: boolean
-  hasChargingPorts?: boolean
   hasEntertainment?: boolean
   hasRestroom?: boolean
 }) {
@@ -92,19 +86,22 @@ export async function createBusRequest(payload: {
 }
 
 export async function updateBusRequest(id: string, payload: Partial<{
+  licensePlate: string
   model: string
   make: string
   year: number
+  totalSeats: number
   busType: string
   status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE'
-  hasAc: boolean
-  hasWifi: boolean
-  hasChargingPorts: boolean
   hasEntertainment: boolean
   hasRestroom: boolean
 }>) {
   const { data } = await api.patch<{ data: BusRecord }>(`/fleet/buses/${id}`, payload)
   return data.data
+}
+
+export async function deleteBusRequest(id: string) {
+  await api.delete(`/fleet/buses/${id}`)
 }
 
 // Routes
@@ -161,8 +158,18 @@ export async function updateDriverRequest(id: string, payload: Partial<{
   firstName: string
   lastName: string
   phoneNumber: string
+  email: string
+  licenseNumber: string
+  licenseExpiryDate: string
+  dateOfBirth: string
+  hireDate: string
+  employeeId: string
   status: string
 }>) {
   const { data } = await api.patch<{ data: DriverRecord }>(`/fleet/drivers/${id}`, payload)
   return data.data
+}
+
+export async function deleteDriverRequest(id: string) {
+  await api.delete(`/fleet/drivers/${id}`)
 }

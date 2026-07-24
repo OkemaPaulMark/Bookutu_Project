@@ -25,8 +25,8 @@ class BusSerializer(serializers.ModelSerializer):
         model = Bus
         fields = [
             'id', 'company_id', 'license_plate', 'model', 'make', 'year', 'total_seats',
-            'bus_type', 'has_ac', 'has_wifi', 'has_charging_ports', 'has_entertainment',
-            'has_restroom', 'status', 'image_url', 'created_at', 'updated_at', 'seats', '_count',
+            'bus_type', 'has_entertainment', 'has_restroom', 'status', 'image_url',
+            'created_at', 'updated_at', 'seats', '_count',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 

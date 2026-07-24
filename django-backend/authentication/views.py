@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -16,7 +17,7 @@ from rest_framework_simplejwt.settings import api_settings as simplejwt_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from common.enums import UserType
-from common.permissions import IsSuperAdmin
+from common.permissions import IsCompanyStaff
 
 from .emails import send_company_admin_invite
 from .serializers import (
@@ -45,6 +46,19 @@ def _hash_setup_token(token: str) -> str:
     return hashlib.sha256(token.encode('utf-8')).hexdigest()
 
 
+def _check_user_access(actor, target_user):
+    """SUPER_ADMIN can manage anyone. COMPANY_STAFF can manage any passenger
+    account plus staff belonging to their own company (not other companies,
+    not super admins)."""
+    if actor.user_type == 'SUPER_ADMIN':
+        return True
+    if target_user.user_type == 'PASSENGER':
+        return True
+    if target_user.user_type == 'COMPANY_STAFF':
+        return actor.user_type == 'COMPANY_STAFF' and actor.company_id == target_user.company_id
+    return False
+
+
 class AuthViewSet(viewsets.ViewSet):
     throttle_scope = None
 
@@ -52,7 +66,7 @@ class AuthViewSet(viewsets.ViewSet):
         if self.action in {'login', 'refresh', 'logout', 'register', 'bootstrap_super_admin', 'password_setup', 'set_password'}:
             return [AllowAny()]
         if self.action in {'register_staff', 'users', 'retrieve', 'update', 'partial_update', 'destroy'}:
-            return [IsAuthenticated(), IsSuperAdmin()]
+            return [IsAuthenticated(), IsCompanyStaff()]
         if self.action in {'me', 'update_me', 'change_password'}:
             return [IsAuthenticated()]
         return super().get_permissions()
@@ -178,7 +192,10 @@ class AuthViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'], url_path='register/staff')
     def register_staff(self, request):
-        serializer = StaffRegisterSerializer(data=request.data)
+        data = dict(request.data)
+        if request.user.user_type == 'COMPANY_STAFF':
+            data['company_id'] = request.user.company_id
+        serializer = StaffRegisterSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         company = serializer.validated_data['company']
         email = serializer.validated_data['email']
@@ -246,11 +263,19 @@ class AuthViewSet(viewsets.ViewSet):
         user_type = request.query_params.get('userType')
         if user_type:
             queryset = queryset.filter(user_type=user_type)
+
+        if request.user.user_type == 'COMPANY_STAFF':
+            queryset = queryset.filter(
+                Q(user_type='PASSENGER') | Q(user_type='COMPANY_STAFF', company_id=request.user.company_id)
+            )
+
         serializer = UserSerializer(queryset, many=True)
         return Response({'data': serializer.data})
 
     def retrieve(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
+        if not _check_user_access(request.user, user):
+            return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
         return Response({'data': UserSerializer(user).data})
 
     def update(self, request, pk=None):
@@ -261,6 +286,8 @@ class AuthViewSet(viewsets.ViewSet):
 
     def _update_user(self, request, pk, partial):
         user = get_object_or_404(User, pk=pk)
+        if not _check_user_access(request.user, user):
+            return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
         serializer = AdminUserUpdateSerializer(user, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -270,6 +297,8 @@ class AuthViewSet(viewsets.ViewSet):
         if str(request.user.id) == str(pk):
             return Response({'detail': 'You cannot delete your own account.'}, status=status.HTTP_400_BAD_REQUEST)
         user = get_object_or_404(User, pk=pk)
+        if not _check_user_access(request.user, user):
+            return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

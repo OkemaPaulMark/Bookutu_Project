@@ -2,6 +2,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 
+from bookings.models import Booking
+
 from .models import Bus, BusSeat, Driver, Route
 from .serializers import BusSerializer, DriverSerializer, RouteSerializer
 
@@ -100,10 +102,37 @@ class BusViewSet(viewsets.ViewSet):
         bus = get_object_or_404(Bus, pk=pk)
         if not _check_object_access(request.user, bus):
             return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
-        serializer = BusSerializer(bus, data=_update_payload(request), partial=partial)
+
+        payload = _update_payload(request)
+        new_total_seats = payload.get('total_seats')
+        seats_changing = new_total_seats is not None and int(new_total_seats) != bus.total_seats
+        if seats_changing and Booking.objects.filter(seat__bus_id=bus.id).exists():
+            return Response(
+                {'detail': 'Cannot change total seats once this bus has bookings on record.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = BusSerializer(bus, data=payload, partial=partial)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({'data': serializer.data})
+        bus = serializer.save()
+
+        if seats_changing:
+            bus.seats.all().delete()
+            _create_seats(bus, bus.total_seats)
+
+        return Response({'data': BusSerializer(bus).data})
+
+    def destroy(self, request, pk=None):
+        bus = get_object_or_404(Bus, pk=pk)
+        if not _check_object_access(request.user, bus):
+            return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
+        if bus.trips.exists():
+            return Response(
+                {'detail': 'Cannot delete a bus that has trips on record. Mark it inactive instead.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        bus.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RouteViewSet(viewsets.ViewSet):
@@ -186,3 +215,10 @@ class DriverViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'data': serializer.data})
+
+    def destroy(self, request, pk=None):
+        driver = get_object_or_404(Driver, pk=pk)
+        if not _check_object_access(request.user, driver):
+            return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
+        driver.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

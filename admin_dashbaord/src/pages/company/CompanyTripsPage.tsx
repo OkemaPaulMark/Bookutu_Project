@@ -1,8 +1,8 @@
 import { FormEvent, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, X, Loader2, AlertCircle } from 'lucide-react'
+import { Plus, X, Loader2, AlertCircle, Pencil, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { listTripsRequest, createTripRequest, updateTripRequest, type TripRecord } from '@/lib/trips'
+import { listTripsRequest, createTripRequest, updateTripRequest, deleteTripRequest, type TripRecord } from '@/lib/trips'
 import { listRoutesRequest, listBusesRequest, listDriversRequest } from '@/lib/fleet'
 import { getApiErrorMessage } from '@/lib/api'
 
@@ -13,7 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: 'bg-rose-100 text-rose-800'
 }
 
-const emptyForm = { routeId: '', busId: '', driverId: '', departureDate: '', departureTime: '', arrivalTime: '', baseFare: 0, notes: '' }
+const emptyForm = { routeId: '', busId: '', driverId: '', departureDate: '', departureTime: '', arrivalTime: '', baseFare: 0, notes: '', status: 'SCHEDULED' }
 
 export default function CompanyTripsPage() {
   const qc = useQueryClient()
@@ -38,11 +38,23 @@ export default function CompanyTripsPage() {
     onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to update trip'))
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteTripRequest,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['trips'] }); toast.success('Trip deleted') },
+    onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to delete trip'))
+  })
+
   function openCreate() { setEditingTrip(null); setForm(emptyForm); setShowModal(true) }
   function openEdit(trip: TripRecord) {
     setEditingTrip(trip)
-    setForm({ routeId: trip.routeId, busId: trip.busId, driverId: trip.driverId ?? '', departureDate: trip.departureDate.slice(0, 10), departureTime: trip.departureTime, arrivalTime: trip.arrivalTime, baseFare: Number(trip.baseFare), notes: trip.notes ?? '' })
+    setForm({ routeId: trip.routeId, busId: trip.busId, driverId: trip.driverId ?? '', departureDate: trip.departureDate.slice(0, 10), departureTime: trip.departureTime, arrivalTime: trip.arrivalTime, baseFare: Number(trip.baseFare), notes: trip.notes ?? '', status: trip.status })
     setShowModal(true)
+  }
+
+  function handleDelete(trip: TripRecord) {
+    if (window.confirm('Are you sure you want to delete this trip? This cannot be undone.')) {
+      deleteMutation.mutate(trip.id)
+    }
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
@@ -53,7 +65,20 @@ export default function CompanyTripsPage() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (editingTrip) {
-      updateMutation.mutate({ id: editingTrip.id, payload: { departureDate: form.departureDate, departureTime: form.departureTime, arrivalTime: form.arrivalTime, baseFare: form.baseFare, driverId: form.driverId || undefined, notes: form.notes } })
+      updateMutation.mutate({
+        id: editingTrip.id,
+        payload: {
+          routeId: form.routeId,
+          busId: form.busId,
+          departureDate: form.departureDate,
+          departureTime: form.departureTime,
+          arrivalTime: form.arrivalTime,
+          baseFare: form.baseFare,
+          driverId: form.driverId || undefined,
+          notes: form.notes,
+          status: form.status
+        }
+      })
     } else {
       createMutation.mutate({ ...form, driverId: form.driverId || undefined })
     }
@@ -72,13 +97,6 @@ export default function CompanyTripsPage() {
         <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 transition">
           <Plus size={18} /> Schedule Trip
         </button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="card p-4"><p className="text-sm text-slate-600">Total</p><p className="mt-2 text-2xl font-bold text-slate-900">{trips.length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Scheduled</p><p className="mt-2 text-2xl font-bold text-blue-600">{trips.filter(t => t.status === 'SCHEDULED').length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Completed</p><p className="mt-2 text-2xl font-bold text-emerald-600">{trips.filter(t => t.status === 'COMPLETED').length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Cancelled</p><p className="mt-2 text-2xl font-bold text-rose-600">{trips.filter(t => t.status === 'CANCELLED').length}</p></div>
       </div>
 
       {tripsQuery.isLoading && <div className="card flex items-center gap-3 p-6 text-slate-600"><Loader2 className="animate-spin" size={18} /> Loading trips...</div>}
@@ -110,9 +128,14 @@ export default function CompanyTripsPage() {
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[trip.status] ?? 'bg-slate-100 text-slate-800'}`}>{trip.status}</span>
                   </td>
                   <td className="px-6 py-3 text-sm">
-                    {trip.status === 'SCHEDULED' && (
-                      <button onClick={() => openEdit(trip)} className="rounded px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 transition">Edit</button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => openEdit(trip)} title="Edit" className="rounded p-1.5 text-amber-700 hover:bg-amber-50 transition">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => handleDelete(trip)} disabled={deleteMutation.isPending} title="Delete" className="rounded p-1.5 text-rose-700 hover:bg-rose-50 transition disabled:opacity-50">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -129,27 +152,33 @@ export default function CompanyTripsPage() {
               <button onClick={() => setShowModal(false)}><X size={20} className="text-slate-500" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4 p-6">
-              {!editingTrip && (
-                <>
-                  <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-700">Route</span>
-                    <select name="routeId" value={form.routeId} onChange={handleChange} required className="input">
-                      <option value="">Select route</option>
-                      {(routesQuery.data ?? []).filter(r => r.isActive).map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-700">Bus</span>
-                    <select name="busId" value={form.busId} onChange={handleChange} required className="input">
-                      <option value="">Select bus</option>
-                      {(busesQuery.data ?? []).filter(b => b.status === 'ACTIVE').map(b => (
-                        <option key={b.id} value={b.id}>{b.licensePlate} — {b.make} {b.model}</option>
-                      ))}
-                    </select>
-                  </label>
-                </>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Route</span>
+                <select name="routeId" value={form.routeId} onChange={handleChange} required className="input">
+                  <option value="">Select route</option>
+                  {(routesQuery.data ?? []).filter(r => r.isActive || r.id === form.routeId).map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Bus</span>
+                <select name="busId" value={form.busId} onChange={handleChange} required className="input">
+                  <option value="">Select bus</option>
+                  {(busesQuery.data ?? []).filter(b => b.status === 'ACTIVE' || b.id === form.busId).map(b => (
+                    <option key={b.id} value={b.id}>{b.licensePlate} — {b.make} {b.model}</option>
+                  ))}
+                </select>
+              </label>
+              {editingTrip && (
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Status</span>
+                  <select name="status" value={form.status} onChange={handleChange} required className="input">
+                    {['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
               )}
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">Driver (optional)</span>

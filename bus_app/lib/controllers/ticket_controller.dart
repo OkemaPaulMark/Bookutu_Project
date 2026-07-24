@@ -22,8 +22,7 @@ class TicketController extends ChangeNotifier {
 
   String ticketId(Booking preview) {
     final source = _confirmedBooking ?? preview;
-    return source.bookingReference ??
-        'TKT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    return source.bookingReference ?? 'Pending confirmation';
   }
 
   Future<bool> confirmBooking({required Trip trip, required Booking preview}) async {

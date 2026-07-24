@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../controllers/ticket_controller.dart';
 import '../models/booking.dart';
 import '../models/trip.dart';
+import '../utils/company_branding.dart';
 
 class TicketScreen extends StatelessWidget {
   final Trip trip;
@@ -83,6 +84,7 @@ class _TicketView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = context.watch<TicketController>();
     final displayed = controller.confirmedBooking ?? preview;
+    final brandColor = CompanyBranding.colorFor(trip.companyName);
 
     return Scaffold(
       appBar: AppBar(
@@ -95,7 +97,7 @@ class _TicketView extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -104,30 +106,76 @@ class _TicketView extends StatelessWidget {
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  QrImageView(
-                    data: displayed.bookingReference ?? 'PREVIEW',
-                    version: QrVersions.auto,
-                    size: 120.0,
-                    backgroundColor: Colors.white,
+                  Container(
+                    width: double.infinity,
+                    color: brandColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    child: Column(
+                      children: [
+                        Text(
+                          trip.companyName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "BUS TICKET",
+                          style: TextStyle(fontSize: 12, letterSpacing: 2, color: Colors.white.withValues(alpha: 0.85)),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text("BUS TICKET", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  buildRow("Ticket ID", controller.ticketId(preview)),
-                  buildRow("Passenger", preview.passengerName),
-                  buildRow("Date", trip.departureDate),
-                  buildRow("Seat Numbers", preview.seatNumbers.join(', ')),
-                  const Divider(),
-                  buildRow("Route", trip.routeName),
-                  buildRow("Bus Company", trip.companyName),
-                  buildRow("Number Plate", trip.busRegistration),
-                  const Divider(),
-                  buildRow("Departure Time", trip.departureTime),
-                  if (!isPreview || controller.isBookingConfirmed) buildRow("Status", displayed.status),
-                  const Divider(),
-                  buildRow("Total Amount", 'UGX ${preview.totalAmount.toStringAsFixed(0)}'),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (displayed.bookingReference != null)
+                          QrImageView(
+                            data: displayed.bookingReference!,
+                            version: QrVersions.auto,
+                            size: 120.0,
+                            backgroundColor: Colors.white,
+                          )
+                        else
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            alignment: Alignment.center,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                'QR appears\nafter confirmation',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        buildRow("Ticket ID", controller.ticketId(preview)),
+                        buildRow("Passenger", displayed.passengerName),
+                        if (displayed.passengerPhone.isNotEmpty) buildRow("Phone", displayed.passengerPhone),
+                        buildRow("Date", trip.departureDate),
+                        buildRow("Seat(s)", displayed.seatLabels.join(', ')),
+                        const Divider(),
+                        buildRow("Route", trip.routeName),
+                        buildRow("Number Plate", trip.busRegistration),
+                        buildRow("Driver", trip.driverName ?? 'Not assigned'),
+                        const Divider(),
+                        buildRow("Departure Time", trip.departureTime),
+                        buildRow("Arrival Time", trip.arrivalTime),
+                        if (!isPreview || controller.isBookingConfirmed) buildRow("Status", displayed.status),
+                        const Divider(),
+                        buildRow("Total Amount", 'UGX ${displayed.totalAmount.toStringAsFixed(0)}'),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

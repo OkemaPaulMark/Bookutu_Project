@@ -25,6 +25,9 @@ class SeatSelectionController extends ChangeNotifier {
   int get busCapacity => _seatMap.busCapacity;
   double get seatPrice => _seatMap.seatPrice;
 
+  String? seatIdFor(int seatNumber) => _seatMap.seatIdFor(seatNumber);
+  String? seatLabelFor(int seatNumber) => _seatMap.seatLabelFor(seatNumber);
+
   SeatStatus statusFor(int seatNumber) {
     if (_seatMap.bookedSeats.contains(seatNumber)) return SeatStatus.booked;
     if (selectedSeats.contains(seatNumber)) return SeatStatus.selected;
@@ -58,9 +61,24 @@ class SeatSelectionController extends ChangeNotifier {
   Future<Booking?> buildPreview() async {
     if (selectedSeats.isEmpty) return null;
     final user = await _authService.getUserData();
+    final seatNumbers = selectedSeats.toList();
+    final seatIds = seatNumbers.map((n) => seatIdFor(n)).whereType<String>().toList();
+    final seatLabels = seatNumbers.map((n) => seatLabelFor(n)).whereType<String>().toList();
+    if (seatIds.length != seatNumbers.length || seatLabels.length != seatNumbers.length) {
+      _errorMessage = 'Seat data is out of date, please go back and try again.';
+      return null;
+    }
+
+    final passengerName = [user?.firstName, user?.lastName]
+        .where((part) => part != null && part.isNotEmpty)
+        .join(' ');
+
     return Booking.preview(
-      seatNumbers: selectedSeats.toList(),
-      passengerName: user?.username ?? 'User',
+      seatNumbers: seatNumbers,
+      seatIds: seatIds,
+      seatLabels: seatLabels,
+      passengerName: passengerName.isNotEmpty ? passengerName : (user?.username ?? user?.email ?? 'Passenger'),
+      passengerPhone: user?.phoneNumber ?? '',
       seatPrice: seatPrice,
     );
   }

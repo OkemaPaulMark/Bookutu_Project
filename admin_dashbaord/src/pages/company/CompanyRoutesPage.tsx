@@ -66,12 +66,6 @@ export default function CompanyRoutesPage() {
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="card p-4"><p className="text-sm text-slate-600">Total Routes</p><p className="mt-2 text-2xl font-bold text-slate-900">{routes.length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Active</p><p className="mt-2 text-2xl font-bold text-emerald-600">{routes.filter(r => r.isActive).length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Avg Fare</p><p className="mt-2 text-2xl font-bold text-slate-900">UGX {routes.length ? Math.round(routes.reduce((s, r) => s + Number(r.baseFare), 0) / routes.length).toLocaleString() : 0}</p></div>
-      </div>
-
       {routesQuery.isLoading && <div className="card flex items-center gap-3 p-6 text-slate-600"><Loader2 className="animate-spin" size={18} /> Loading routes...</div>}
       {routesQuery.isError && <div className="card flex items-start gap-3 border-rose-200 bg-rose-50 p-6 text-rose-700"><AlertCircle size={18} className="mt-0.5" />{getApiErrorMessage(routesQuery.error)}</div>}
 

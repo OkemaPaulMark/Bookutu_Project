@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from common.enums import DeliveryStatus
 from common.ids import generate_id
@@ -10,6 +11,7 @@ class Delivery(TimeStampedModel):
     tracking_number = models.CharField(max_length=50, unique=True)
     company = models.ForeignKey('companies.Company', on_delete=models.CASCADE, related_name='deliveries')
 
+    sent_at = models.DateTimeField(default=timezone.now)
     sender_name = models.CharField(max_length=150)
     sender_phone = models.CharField(max_length=30)
     receiver_name = models.CharField(max_length=150)

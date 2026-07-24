@@ -115,24 +115,25 @@ export default function CompanySettingsPage() {
     <section className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">Manage your company profile and account preferences</p>
+        <h1 className="text-3xl font-semibold text-slate-900">Settings</h1>
+        <p className="mt-1 text-sm text-slate-600">Manage your company profile and account preferences</p>
       </div>
 
       <div className="flex gap-6">
         {/* Sidebar tabs */}
-        <nav className="w-52 shrink-0 space-y-1">
+        <nav className="card h-fit w-56 shrink-0 space-y-1 p-2">
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 tab === t.id
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
               type="button"
             >
+              {tab === t.id && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-blue-600" />}
               <t.icon size={16} />
               {t.label}
             </button>

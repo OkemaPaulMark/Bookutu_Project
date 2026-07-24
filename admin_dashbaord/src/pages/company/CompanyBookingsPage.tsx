@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2, AlertCircle, Filter } from 'lucide-react'
+import { Loader2, AlertCircle, Filter, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { listBookingsRequest, cancelBookingRequest, type BookingRecord } from '@/lib/bookings'
+import { listBookingsRequest, deleteBookingRequest, type BookingRecord } from '@/lib/bookings'
 import { getApiErrorMessage } from '@/lib/api'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -23,11 +23,17 @@ export default function CompanyBookingsPage() {
     queryFn: () => listBookingsRequest({ status: statusFilter || undefined, search: search || undefined })
   })
 
-  const cancelMutation = useMutation({
-    mutationFn: cancelBookingRequest,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['bookings'] }); toast.success('Booking cancelled') },
-    onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to cancel booking'))
+  const deleteMutation = useMutation({
+    mutationFn: deleteBookingRequest,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['bookings'] }); toast.success('Booking deleted') },
+    onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to delete booking'))
   })
+
+  function handleDelete(booking: BookingRecord) {
+    if (window.confirm(`Delete booking ${booking.bookingReference}? This cannot be undone.`)) {
+      deleteMutation.mutate(booking.id)
+    }
+  }
 
   const bookings = bookingsQuery.data ?? []
 
@@ -36,13 +42,6 @@ export default function CompanyBookingsPage() {
       <div>
         <h1 className="text-3xl font-semibold text-slate-900">Bookings</h1>
         <p className="mt-1 text-sm text-slate-600">Manage and track all passenger bookings</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="card p-4"><p className="text-sm text-slate-600">Total</p><p className="mt-2 text-2xl font-bold text-slate-900">{bookings.length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Confirmed</p><p className="mt-2 text-2xl font-bold text-emerald-600">{bookings.filter(b => b.status === 'CONFIRMED').length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Pending</p><p className="mt-2 text-2xl font-bold text-amber-600">{bookings.filter(b => b.status === 'PENDING').length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Revenue</p><p className="mt-2 text-2xl font-bold text-slate-900">UGX {bookings.filter(b => ['CONFIRMED', 'COMPLETED'].includes(b.status)).reduce((s, b) => s + Number(b.totalAmount), 0).toLocaleString()}</p></div>
       </div>
 
       <div className="card flex flex-wrap items-center gap-4 p-4">
@@ -80,8 +79,7 @@ export default function CompanyBookingsPage() {
                   </td>
                   <td className="px-6 py-3 text-sm text-slate-600">{booking.trip.route.originCity} → {booking.trip.route.destinationCity}</td>
                   <td className="px-6 py-3 text-sm text-slate-600">
-                    <p>{new Date(booking.trip.departureDate).toLocaleDateString()}</p>
-                    <p className="text-xs text-slate-400">{booking.trip.departureTime}</p>
+                    {new Date(booking.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date(booking.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="px-6 py-3 text-sm font-medium text-slate-900">{booking.seat.seatNumber}</td>
                   <td className="px-6 py-3 text-sm font-semibold text-slate-900">UGX {Number(booking.totalAmount).toLocaleString()}</td>
@@ -89,11 +87,9 @@ export default function CompanyBookingsPage() {
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[booking.status] ?? 'bg-slate-100 text-slate-800'}`}>{booking.status}</span>
                   </td>
                   <td className="px-6 py-3 text-sm">
-                    {['PENDING', 'CONFIRMED'].includes(booking.status) && (
-                      <button onClick={() => cancelMutation.mutate(booking.id)} disabled={cancelMutation.isPending} className="rounded px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 transition disabled:opacity-50">
-                        Cancel
-                      </button>
-                    )}
+                    <button onClick={() => handleDelete(booking)} disabled={deleteMutation.isPending} title="Delete" className="rounded p-1.5 text-rose-700 hover:bg-rose-50 transition disabled:opacity-50">
+                      <Trash2 size={15} />
+                    </button>
                   </td>
                 </tr>
               ))}

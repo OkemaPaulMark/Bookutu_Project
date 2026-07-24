@@ -1,6 +1,6 @@
 import { api } from './api'
 
-export type DeliveryStatus = 'REGISTERED' | 'PICKED_UP' | 'CANCELLED'
+export type DeliveryStatus = 'REGISTERED' | 'ON_DELIVERY' | 'PICKED_UP' | 'CANCELLED'
 
 export type DeliveryStaffSummary = {
   id: string
@@ -12,6 +12,7 @@ export type DeliveryRecord = {
   id: string
   trackingNumber: string
   companyId: string
+  sentAt: string
   senderName: string
   senderPhone: string
   receiverName: string
@@ -34,6 +35,7 @@ export async function listDeliveriesRequest(params?: { status?: DeliveryStatus; 
 }
 
 export async function createDeliveryRequest(payload: {
+  sentAt: string
   senderName: string
   senderPhone: string
   receiverName: string
@@ -47,12 +49,11 @@ export async function createDeliveryRequest(payload: {
   return data.data
 }
 
-export async function pickupDeliveryRequest(id: string) {
-  const { data } = await api.patch<{ data: DeliveryRecord }>(`/deliveries/${id}/pickup`)
+export async function updateDeliveryStatusRequest(id: string, status: DeliveryStatus) {
+  const { data } = await api.patch<{ data: DeliveryRecord }>(`/deliveries/${id}/status`, { status })
   return data.data
 }
 
-export async function cancelDeliveryRequest(id: string) {
-  const { data } = await api.patch<{ data: DeliveryRecord }>(`/deliveries/${id}/cancel`)
-  return data.data
+export async function deleteDeliveryRequest(id: string) {
+  await api.delete(`/deliveries/${id}`)
 }

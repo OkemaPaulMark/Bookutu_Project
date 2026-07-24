@@ -19,7 +19,7 @@ class DeliverySerializer(serializers.ModelSerializer):
     class Meta:
         model = Delivery
         fields = [
-            'id', 'tracking_number', 'company_id',
+            'id', 'tracking_number', 'company_id', 'sent_at',
             'sender_name', 'sender_phone', 'receiver_name', 'receiver_phone',
             'origin_terminal', 'destination_terminal', 'package_description', 'fee',
             'status', 'registered_by', 'picked_up_by', 'picked_up_at',

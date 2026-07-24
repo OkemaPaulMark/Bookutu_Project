@@ -59,22 +59,16 @@ function money(value: number) {
   return `UGX ${value.toLocaleString()}`;
 }
 
-export default function CompanyReportsPage() {
+export default function CompanyFinancialsPage() {
   const maxRevenue = Math.max(...monthlyRevenue.map((item) => item.value));
   const maxSeats = Math.max(...weeklySeats.map((item) => item.sold));
 
   return (
     <section className="space-y-6">
-      <header className="rounded-3xl bg-[linear-gradient(135deg,_#0f172a,_#134e4a)] p-6 text-white shadow-lg shadow-slate-900/10">
-        <p className="text-sm uppercase tracking-[0.16em] text-teal-200">
-          Company reporting
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold">Reports</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200">
-          A polished mockup of the reports dashboard with dummy data for fleet,
-          bookings, revenue, and route performance.
-        </p>
-      </header>
+      <div>
+        <h1 className="text-3xl font-semibold text-slate-900">Financials</h1>
+        <p className="mt-1 text-sm text-slate-600">Revenue, occupancy, and route performance at a glance</p>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="card p-4">
@@ -120,18 +114,13 @@ export default function CompanyReportsPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="card p-5 xl:col-span-2">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Revenue trend
-              </h2>
-              <p className="text-sm text-slate-600">
-                Six month snapshot in UGX millions
-              </p>
-            </div>
-            <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-              Dummy data
-            </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Revenue trend
+            </h2>
+            <p className="text-sm text-slate-600">
+              Six month snapshot in UGX millions
+            </p>
           </div>
 
           <div className="mt-6 flex h-72 items-end gap-4 rounded-2xl bg-slate-50 p-4">
@@ -309,51 +298,28 @@ export default function CompanyReportsPage() {
             </p>
             <p className="mt-2 text-2xl font-bold text-slate-900">Saturday</p>
             <p className="text-xs text-slate-500">
-              304 seats sold in the dummy dataset
+              304 seats sold this week
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="card p-5">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Recent insights
-          </h2>
-          <div className="mt-4 space-y-3">
-            {recentActivity.map((item) => (
-              <div
-                key={item}
-                className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4"
-              >
-                <div className="mt-0.5 rounded-full bg-blue-100 p-2 text-blue-700">
-                  <ArrowUpRight size={16} />
-                </div>
-                <p className="text-sm leading-6 text-slate-700">{item}</p>
+      <div className="card p-5">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Recent insights
+        </h2>
+        <div className="mt-4 space-y-3">
+          {recentActivity.map((item) => (
+            <div
+              key={item}
+              className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4"
+            >
+              <div className="mt-0.5 rounded-full bg-blue-100 p-2 text-blue-700">
+                <ArrowUpRight size={16} />
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Report purpose
-          </h2>
-          <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-            <p>
-              This page is a presentation-style reports view. It shows how the
-              company dashboard could summarize performance data with no backend
-              dependency.
-            </p>
-            <p>
-              Use it as a visual reference for cards, charts, tables, and
-              operational highlights before connecting real analytics data.
-            </p>
-            <p>
-              The layout is intentionally aligned with the rest of the company
-              pages, so it feels like part of the same admin system.
-            </p>
-          </div>
+              <p className="text-sm leading-6 text-slate-700">{item}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

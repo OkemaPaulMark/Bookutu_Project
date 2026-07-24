@@ -1,8 +1,8 @@
 import { FormEvent, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, X, Loader2, AlertCircle } from 'lucide-react'
+import { Plus, X, Loader2, AlertCircle, Pencil, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { listBusesRequest, createBusRequest, updateBusRequest, type BusRecord } from '@/lib/fleet'
+import { listBusesRequest, createBusRequest, updateBusRequest, deleteBusRequest, type BusRecord } from '@/lib/fleet'
 import { getApiErrorMessage } from '@/lib/api'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -13,7 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const emptyForm = {
   licensePlate: '', model: '', make: '', year: new Date().getFullYear(),
-  totalSeats: 32, busType: 'MINIBUS', hasAc: true, hasWifi: false, hasChargingPorts: false
+  totalSeats: 32, busType: 'STANDARD', status: 'ACTIVE'
 }
 
 export default function CompanyFleetPage() {
@@ -47,22 +47,45 @@ export default function CompanyFleetPage() {
     onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to update bus'))
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteBusRequest,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['buses'] }); toast.success('Bus deleted') },
+    onError: (e) => toast.error(getApiErrorMessage(e, 'Failed to delete bus'))
+  })
+
   function openCreate() { setEditingBus(null); setForm(emptyForm); setShowModal(true) }
   function openEdit(bus: BusRecord) {
     setEditingBus(bus)
-    setForm({ licensePlate: bus.licensePlate, model: bus.model, make: bus.make, year: bus.year, totalSeats: bus.totalSeats, busType: bus.busType, hasAc: bus.hasAc, hasWifi: bus.hasWifi, hasChargingPorts: bus.hasChargingPorts })
+    setForm({ licensePlate: bus.licensePlate, model: bus.model, make: bus.make, year: bus.year, totalSeats: bus.totalSeats, busType: bus.busType, status: bus.status })
     setShowModal(true)
   }
 
+  function handleDelete(bus: BusRecord) {
+    if (window.confirm(`Delete bus ${bus.licensePlate}? This cannot be undone.`)) {
+      deleteMutation.mutate(bus.id)
+    }
+  }
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value, type } = e.target
-    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : ['year', 'totalSeats'].includes(name) ? Number(value) : value }))
+    const { name, value } = e.target
+    setForm(prev => ({ ...prev, [name]: ['year', 'totalSeats'].includes(name) ? Number(value) : value }))
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (editingBus) {
-      updateMutation.mutate({ id: editingBus.id, payload: { model: form.model, make: form.make, year: form.year, busType: form.busType, hasAc: form.hasAc, hasWifi: form.hasWifi, hasChargingPorts: form.hasChargingPorts } })
+      updateMutation.mutate({
+        id: editingBus.id,
+        payload: {
+          licensePlate: form.licensePlate,
+          model: form.model,
+          make: form.make,
+          year: form.year,
+          totalSeats: form.totalSeats,
+          busType: form.busType,
+          status: form.status as 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE'
+        }
+      })
     } else {
       createMutation.mutate(form)
     }
@@ -81,12 +104,6 @@ export default function CompanyFleetPage() {
         <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 transition">
           <Plus size={18} /> Add Bus
         </button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="card p-4"><p className="text-sm text-slate-600">Total Buses</p><p className="mt-2 text-2xl font-bold text-slate-900">{buses.length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Active</p><p className="mt-2 text-2xl font-bold text-emerald-600">{buses.filter(b => b.status === 'ACTIVE').length}</p></div>
-        <div className="card p-4"><p className="text-sm text-slate-600">Total Seats</p><p className="mt-2 text-2xl font-bold text-slate-900">{buses.reduce((s, b) => s + b.totalSeats, 0)}</p></div>
       </div>
 
       {busesQuery.isLoading && <div className="card flex items-center gap-3 p-6 text-slate-600"><Loader2 className="animate-spin" size={18} /> Loading fleet...</div>}
@@ -116,7 +133,14 @@ export default function CompanyFleetPage() {
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[bus.status] ?? 'bg-slate-100 text-slate-800'}`}>{bus.status}</span>
                   </td>
                   <td className="px-6 py-3 text-sm">
-                    <button onClick={() => openEdit(bus)} className="rounded px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 transition">Edit</button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => openEdit(bus)} title="Edit" className="rounded p-1.5 text-amber-700 hover:bg-amber-50 transition">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => handleDelete(bus)} disabled={deleteMutation.isPending} title="Delete" className="rounded p-1.5 text-rose-700 hover:bg-rose-50 transition disabled:opacity-50">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -133,12 +157,10 @@ export default function CompanyFleetPage() {
               <button onClick={() => setShowModal(false)}><X size={20} className="text-slate-500" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4 p-6">
-              {!editingBus && (
-                <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">License Plate</span>
-                  <input name="licensePlate" value={form.licensePlate} onChange={handleChange} required className="input" placeholder="UAA 123B" />
-                </label>
-              )}
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">License Plate</span>
+                <input name="licensePlate" value={form.licensePlate} onChange={handleChange} required className="input" placeholder="UAA 123B" />
+              </label>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-slate-700">Make</span>
@@ -152,29 +174,31 @@ export default function CompanyFleetPage() {
                   <span className="mb-1 block text-sm font-medium text-slate-700">Year</span>
                   <input name="year" type="number" value={form.year} onChange={handleChange} required className="input" min={2000} max={new Date().getFullYear()} />
                 </label>
-                {!editingBus && (
-                  <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-700">Total Seats</span>
-                    <input name="totalSeats" type="number" value={form.totalSeats} onChange={handleChange} required className="input" min={4} max={100} />
-                  </label>
-                )}
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Total Seats</span>
+                  <input name="totalSeats" type="number" value={form.totalSeats} onChange={handleChange} required className="input" min={4} max={100} />
+                </label>
               </div>
+              {editingBus && (
+                <p className="text-xs text-amber-600">Changing total seats regenerates the seat layout. Only possible if this bus has no bookings yet.</p>
+              )}
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">Bus Type</span>
                 <select name="busType" value={form.busType} onChange={handleChange} className="input">
-                  <option value="MINIBUS">Minibus</option>
-                  <option value="COACH">Coach</option>
-                  <option value="LUXURY">Luxury</option>
+                  <option value="STANDARD">Standard</option>
+                  <option value="EXECUTIVE">Executive</option>
                 </select>
               </label>
-              <div className="flex gap-6">
-                {(['hasAc', 'hasWifi', 'hasChargingPorts'] as const).map(key => (
-                  <label key={key} className="flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" name={key} checked={form[key] as boolean} onChange={handleChange} />
-                    {key === 'hasAc' ? 'AC' : key === 'hasWifi' ? 'WiFi' : 'Charging'}
-                  </label>
-                ))}
-              </div>
+              {editingBus && (
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Status</span>
+                  <select name="status" value={form.status} onChange={handleChange} className="input">
+                    {['ACTIVE', 'MAINTENANCE', 'INACTIVE'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                 <button type="submit" disabled={isSubmitting} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">

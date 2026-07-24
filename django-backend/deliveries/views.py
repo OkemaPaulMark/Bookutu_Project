@@ -110,32 +110,40 @@ class DeliveryViewSet(viewsets.ViewSet):
         serializer.save()
         return Response({'data': serializer.data})
 
-    @action(detail=True, methods=['patch'], url_path='pickup')
-    def pickup(self, request, pk=None):
+    ALLOWED_STATUS_TRANSITIONS = {
+        'REGISTERED': {'ON_DELIVERY', 'PICKED_UP', 'CANCELLED'},
+        'ON_DELIVERY': {'PICKED_UP', 'CANCELLED'},
+        'PICKED_UP': set(),
+        'CANCELLED': set(),
+    }
+
+    @action(detail=True, methods=['patch'], url_path='status')
+    def update_status(self, request, pk=None):
         delivery = get_object_or_404(Delivery, pk=pk)
         if not _check_object_access(request.user, delivery):
             return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
 
-        if delivery.status == 'PICKED_UP':
-            return Response({'detail': 'This package has already been picked up.'}, status=status.HTTP_400_BAD_REQUEST)
-        if delivery.status == 'CANCELLED':
-            return Response({'detail': 'This delivery has been cancelled.'}, status=status.HTTP_400_BAD_REQUEST)
+        new_status = request.data.get('status')
+        if new_status not in dict(self.ALLOWED_STATUS_TRANSITIONS):
+            return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+        if new_status not in self.ALLOWED_STATUS_TRANSITIONS[delivery.status]:
+            return Response(
+                {'detail': f'Cannot change status from {delivery.status} to {new_status}.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        delivery.status = 'PICKED_UP'
-        delivery.picked_up_by = request.user
-        delivery.picked_up_at = timezone.now()
-        delivery.save(update_fields=['status', 'picked_up_by', 'picked_up_at', 'updated_at'])
+        delivery.status = new_status
+        update_fields = ['status', 'updated_at']
+        if new_status == 'PICKED_UP':
+            delivery.picked_up_by = request.user
+            delivery.picked_up_at = timezone.now()
+            update_fields += ['picked_up_by', 'picked_up_at']
+        delivery.save(update_fields=update_fields)
         return Response({'data': DeliverySerializer(delivery).data})
 
-    @action(detail=True, methods=['patch'], url_path='cancel')
-    def cancel(self, request, pk=None):
+    def destroy(self, request, pk=None):
         delivery = get_object_or_404(Delivery, pk=pk)
         if not _check_object_access(request.user, delivery):
             return Response({'detail': 'Insufficient permissions.'}, status=status.HTTP_403_FORBIDDEN)
-
-        if delivery.status == 'PICKED_UP':
-            return Response({'detail': 'This package has already been picked up.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        delivery.status = 'CANCELLED'
-        delivery.save(update_fields=['status', 'updated_at'])
-        return Response({'data': DeliverySerializer(delivery).data})
+        delivery.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

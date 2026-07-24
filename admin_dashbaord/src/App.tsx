@@ -1,17 +1,9 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import RoleRoute from "@components/RoleRoute";
-import AdminLayout from "@layouts/AdminLayout";
 import CompanyLayout from "@layouts/CompanyLayout";
 import LoginPage from "@pages/auth/LoginPage";
 import SetPasswordPage from "@pages/auth/SetPasswordPage";
-import AdminOverviewPage from "@pages/admin/AdminOverviewPage";
-import AdminCompaniesPage from "@pages/admin/AdminCompaniesPage";
-import AdminPassengersPage from "@pages/admin/AdminPassengersPage";
-import AdminBookingsPage from "@pages/admin/AdminBookingsPage";
-import AdminFinancialsPage from "@pages/admin/AdminFinancialsPage";
-import AdminAdvertsPage from "@pages/admin/AdminAdvertsPage";
-import AdminSettingsPage from "@pages/admin/AdminSettingsPage";
 import CompanyOverviewPage from "@pages/company/CompanyOverviewPage";
 import CompanyFleetPage from "@pages/company/CompanyFleetPage";
 import CompanyRoutesPage from "@pages/company/CompanyRoutesPage";
@@ -19,18 +11,17 @@ import CompanyTripsPage from "@pages/company/CompanyTripsPage";
 import CompanyBookingsPage from "@pages/company/CompanyBookingsPage";
 import CompanyDriversPage from "@pages/company/CompanyDriversPage";
 import CompanyDeliveriesPage from "@pages/company/CompanyDeliveriesPage";
+import CompanyPassengersPage from "@pages/company/CompanyPassengersPage";
+import CompanyAdvertsPage from "@pages/company/CompanyAdvertsPage";
+import CompanyFinancialsPage from "@pages/company/CompanyFinancialsPage";
+import CompanyStaffPage from "@pages/company/CompanyStaffPage";
 import CompanySettingsPage from "@pages/company/CompanySettingsPage";
 import { useAuthStore } from "@store/authStore";
 
 function RootRedirect() {
   const user = useAuthStore((s) => s.user);
   if (!user) return <Navigate to="/login" replace />;
-  return (
-    <Navigate
-      to={user.role === "SUPER_ADMIN" ? "/admin" : "/company"}
-      replace
-    />
-  );
+  return <Navigate to="/company" replace />;
 }
 
 export default function App() {
@@ -46,18 +37,6 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/set-password" element={<SetPasswordPage />} />
 
-      <Route element={<RoleRoute allow="SUPER_ADMIN" />}>
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminOverviewPage />} />
-          <Route path="companies" element={<AdminCompaniesPage />} />
-          <Route path="passengers" element={<AdminPassengersPage />} />
-          <Route path="bookings" element={<AdminBookingsPage />} />
-          <Route path="financials" element={<AdminFinancialsPage />} />
-          <Route path="adverts" element={<AdminAdvertsPage />} />
-          <Route path="settings" element={<AdminSettingsPage />} />
-        </Route>
-      </Route>
-
       <Route element={<RoleRoute allow="COMPANY_STAFF" />}>
         <Route path="/company" element={<CompanyLayout />}>
           <Route index element={<CompanyOverviewPage />} />
@@ -67,6 +46,10 @@ export default function App() {
           <Route path="bookings" element={<CompanyBookingsPage />} />
           <Route path="drivers" element={<CompanyDriversPage />} />
           <Route path="deliveries" element={<CompanyDeliveriesPage />} />
+          <Route path="passengers" element={<CompanyPassengersPage />} />
+          <Route path="adverts" element={<CompanyAdvertsPage />} />
+          <Route path="financials" element={<CompanyFinancialsPage />} />
+          <Route path="staff" element={<CompanyStaffPage />} />
           <Route path="settings" element={<CompanySettingsPage />} />
         </Route>
       </Route>

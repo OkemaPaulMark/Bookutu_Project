@@ -53,5 +53,6 @@ class PaymentMethod(TextChoicesBase):
 
 class DeliveryStatus(TextChoicesBase):
     REGISTERED = 'REGISTERED', 'Registered'
+    ON_DELIVERY = 'ON_DELIVERY', 'On delivery'
     PICKED_UP = 'PICKED_UP', 'Picked up'
     CANCELLED = 'CANCELLED', 'Cancelled'

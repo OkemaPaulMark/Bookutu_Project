@@ -6,7 +6,7 @@ import 'auth_service.dart';
 
 const String _baseUrl = String.fromEnvironment(
   'BOOKUTU_API_URL',
-  defaultValue: 'http://10.0.2.2:4000',
+  defaultValue: 'http://192.168.115.75:8001',
 );
 const String _apiUrl = '$_baseUrl/api/v1';
 const String _advertsEndpoint = '$_apiUrl/adverts';

@@ -12,7 +12,7 @@ export default function RoleRoute({ allow }: RoleRouteProps) {
 
   if (isHydrating) return null
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== allow) return <Navigate to={user.role === 'SUPER_ADMIN' ? '/admin' : '/company'} replace />
+  if (user.role !== allow) return <Navigate to="/company" replace />
 
   return <Outlet />
 }

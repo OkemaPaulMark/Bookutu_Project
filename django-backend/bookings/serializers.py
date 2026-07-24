@@ -17,10 +17,17 @@ class _BusSummarySerializer(serializers.Serializer):
     license_plate = serializers.CharField()
 
 
+class _CompanySummarySerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+
+
 class _TripSummarySerializer(serializers.Serializer):
     id = serializers.CharField()
     departure_date = serializers.DateTimeField()
     departure_time = serializers.CharField()
+    arrival_time = serializers.CharField()
+    company = _CompanySummarySerializer()
     route = _RouteSummarySerializer()
     bus = _BusSummarySerializer()
 
@@ -51,6 +58,8 @@ class BookingSerializer(serializers.ModelSerializer):
     passenger = _PassengerSummarySerializer(read_only=True)
     seat_id = serializers.PrimaryKeyRelatedField(source='seat', queryset=BusSeat.objects.all())
     seat = _SeatSummarySerializer(read_only=True)
+    passenger_name = serializers.CharField(required=False, allow_blank=True)
+    passenger_phone = serializers.CharField(required=False, allow_blank=True)
     payments = _PaymentSummarySerializer(many=True, read_only=True)
 
     class Meta:
@@ -62,4 +71,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'base_fare', 'seat_fee', 'service_fee', 'total_amount',
             'created_at', 'confirmed_at', 'cancelled_at', 'payments',
         ]
-        read_only_fields = ['id', 'booking_reference', 'created_at', 'confirmed_at', 'cancelled_at']
+        read_only_fields = [
+            'id', 'booking_reference', 'base_fare', 'seat_fee', 'service_fee', 'total_amount',
+            'created_at', 'confirmed_at', 'cancelled_at',
+        ]

@@ -114,7 +114,7 @@ function EditPassengerForm({
   )
 }
 
-export default function AdminPassengersPage() {
+export default function CompanyPassengersPage() {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState<AuthApiUser | null>(null)
 

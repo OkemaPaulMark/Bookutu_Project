@@ -60,6 +60,8 @@ export async function createTripRequest(payload: {
 
 export async function updateTripRequest(id: string, payload: Partial<{
   status: string
+  routeId: string
+  busId: string
   departureDate: string
   departureTime: string
   arrivalTime: string
@@ -69,6 +71,10 @@ export async function updateTripRequest(id: string, payload: Partial<{
 }>) {
   const { data } = await api.patch<{ data: TripRecord }>(`/trips/${id}`, payload)
   return data.data
+}
+
+export async function deleteTripRequest(id: string) {
+  await api.delete(`/trips/${id}`)
 }
 
 export async function getTripStatsRequest() {

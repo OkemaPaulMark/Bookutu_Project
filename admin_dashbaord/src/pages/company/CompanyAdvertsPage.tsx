@@ -100,7 +100,7 @@ function AdvertForm({
   )
 }
 
-export default function AdminAdvertsPage() {
+export default function CompanyAdvertsPage() {
   const queryClient = useQueryClient()
   const [modal, setModal] = useState<'create' | AdvertRecord | null>(null)
 

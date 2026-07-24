@@ -8,23 +8,31 @@ import {
   Cog,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Package,
   Route,
   Search,
+  ShieldCheck,
   Ticket,
+  TrendingUp,
   UserCircle2,
   Users,
+  UsersRound,
 } from "lucide-react";
 import { useAuthStore } from "@store/authStore";
 
 const navItems = [
   { to: "/company", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/company/fleet", label: "Fleet Management", icon: Bus },
-  { to: "/company/routes", label: "Routes & Schedules", icon: Route },
+  { to: "/company/fleet", label: "Fleet", icon: Bus },
+  { to: "/company/routes", label: "Routes", icon: Route },
   { to: "/company/trips", label: "Trips", icon: CalendarCheck },
   { to: "/company/bookings", label: "Bookings", icon: Ticket },
   { to: "/company/drivers", label: "Drivers", icon: Users },
   { to: "/company/deliveries", label: "Deliveries", icon: Package },
+  { to: "/company/passengers", label: "Passengers", icon: UsersRound },
+  { to: "/company/adverts", label: "Adverts", icon: Megaphone },
+  { to: "/company/financials", label: "Financials", icon: TrendingUp },
+  { to: "/company/staff", label: "Staff", icon: ShieldCheck },
   { to: "/company/settings", label: "Settings", icon: Cog },
 ];
 
@@ -59,9 +67,12 @@ export default function CompanyLayout() {
           <div className="rounded bg-blue-600 p-1.5 text-white">
             <Bus size={16} />
           </div>
-          <span className="text-base font-bold text-slate-900 truncate max-w-[200px]">
-            {user?.companyName || "Company"}
-          </span>
+          <div className="leading-tight">
+            <p className="text-base font-bold text-slate-900 truncate max-w-[200px]">
+              {user?.companyName || "Company"}
+            </p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Admin Dashboard</p>
+          </div>
         </div>
 
         {/* Centre: search */}
