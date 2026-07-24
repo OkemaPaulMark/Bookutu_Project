@@ -6,11 +6,11 @@ import {
   ChevronDown,
   CircleDollarSign,
   Cog,
-  KeyRound,
   LogOut,
   Megaphone,
   Search,
   Shield,
+  Smartphone,
   Ticket,
   UserCircle2,
 } from "lucide-react";
@@ -19,8 +19,8 @@ import { useAuthStore } from "@store/authStore";
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: CalendarClock },
-  { to: "/admin/company-admins", label: "Register Company Admin", icon: KeyRound },
   { to: "/admin/companies", label: "Companies", icon: Building2 },
+  { to: "/admin/passengers", label: "Passengers", icon: Smartphone },
   { to: "/admin/bookings", label: "Bookings", icon: Ticket },
   { to: "/admin/financials", label: "Financials", icon: CircleDollarSign },
   { to: "/admin/adverts", label: "Adverts", icon: Megaphone },

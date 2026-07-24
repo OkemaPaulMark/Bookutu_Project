@@ -151,8 +151,8 @@ export default function DashboardOverview() {
                   const max = Math.max(...s.routePerformance.map(r => r.revenue), 1)
                   return (
                     <div className="space-y-4">
-                      {s.routePerformance.map(item => (
-                        <div key={item.route}>
+                      {s.routePerformance.map((item, index) => (
+                        <div key={`${item.route}-${index}`}>
                           <div className="mb-1 flex items-center justify-between text-sm">
                             <span className="font-medium text-slate-800">{item.route}</span>
                             <span className="text-slate-500">{item.trips} trips · {money(item.revenue)}</span>
