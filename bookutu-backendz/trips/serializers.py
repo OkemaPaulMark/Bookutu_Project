@@ -48,7 +48,7 @@ class TripSerializer(serializers.ModelSerializer):
     bus_registration = serializers.CharField(
         source="bus.registration_number", read_only=True
     )
-    bus_image = serializers.ImageField(source='bus.image', read_only=True)
+    bus_image = serializers.ImageField(source='bus.image', required=False, allow_null=True)
     driver_full_name = serializers.CharField(
         source="driver.get_full_name", read_only=True
     )
@@ -146,9 +146,41 @@ class TripPublicSerializer(serializers.ModelSerializer):
     Public serializer for Flutter app (GET endpoint)
     """
     route_name = serializers.CharField(source='route.name', read_only=True)
-    bus_numberplate = serializers.CharField(source='bus.registration_number', read_only=True)
+    origin = serializers.CharField(source='route.origin_city', read_only=True)
+    destination = serializers.CharField(source='route.destination_city', read_only=True)
+    origin_terminal = serializers.CharField(source='route.origin_terminal', read_only=True)
+    destination_terminal = serializers.CharField(source='route.destination_terminal', read_only=True)
+    duration_hours = serializers.DecimalField(source='route.estimated_duration_hours', max_digits=5, decimal_places=1, read_only=True)
+    bus_numberplate = serializers.CharField(source='bus.license_plate', read_only=True)
+    bus_type = serializers.CharField(source='bus.bus_type', read_only=True)
     capacity = serializers.IntegerField(source='bus.total_seats', read_only=True)
+    amenities = serializers.SerializerMethodField()
+    seats_left = serializers.SerializerMethodField()
+    bus_image = serializers.SerializerMethodField()
+    company_name = serializers.CharField(source='company.name', read_only=True)
 
     class Meta:
         model = Trip
-        fields = ['id', 'route_name', 'departure_time', 'base_fare', 'bus_numberplate', 'capacity']
+        fields = ['id', 'route_name', 'origin', 'destination', 'origin_terminal',
+                  'destination_terminal', 'departure_date', 'departure_time',
+                  'arrival_time', 'duration_hours', 'base_fare', 'bus_numberplate',
+                  'bus_type', 'capacity', 'seats_left', 'amenities', 'bus_image',
+                  'company_name', 'status']
+
+    def get_seats_left(self, obj):
+        from bookings.models import Booking
+        taken = Booking.objects.filter(trip=obj, status__in=["PENDING", "CONFIRMED"]).count()
+        return max(obj.bus.seats.count() - taken, 0)
+
+    def get_amenities(self, obj):
+        b = obj.bus
+        return [name for name, on in [("AC", b.has_ac), ("WiFi", b.has_wifi),
+                                      ("Charging", b.has_charging_ports),
+                                      ("Entertainment", b.has_entertainment),
+                                      ("Restroom", b.has_restroom)] if on]
+
+    def get_bus_image(self, obj):
+        request = self.context.get('request')
+        if obj.bus.image and request:
+            return request.build_absolute_uri(obj.bus.image.url)
+        return None

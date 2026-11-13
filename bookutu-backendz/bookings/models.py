@@ -1,5 +1,6 @@
 import logging
 from django.db import models
+from django.db.models import F
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from accounts.managers import TenantAwareManager
@@ -119,29 +120,32 @@ class Booking(models.Model):
         self.confirmed_at = timezone.now()
         self.save()
 
-        # Update trip booked seats count
-        old_booked = self.trip.booked_seats
-        self.trip.booked_seats += 1
-        self.trip.save()
-        logger.info(
-            f"Updated trip {self.trip} booked seats: {old_booked} -> {self.trip.booked_seats}"
-        )
+        # Update trip booked seats count atomically in the database, so confirming
+        # several bookings (each holding its own Trip instance) can't lose updates.
+        from trips.models import Trip
+        Trip.objects.filter(pk=self.trip_id).update(booked_seats=F("booked_seats") + 1)
+        self.trip.refresh_from_db(fields=["booked_seats"])
+        logger.info(f"Updated trip {self.trip} booked seats -> {self.trip.booked_seats}")
 
     def cancel_booking(self, reason=""):
         """Cancel the booking"""
         logger.info(f"Cancelling booking {self.booking_reference} for trip {self.trip}")
+        was_confirmed = self.status == "CONFIRMED"
         self.status = "CANCELLED"
         self.cancelled_at = timezone.now()
         self.save()
 
-        # Update trip booked seats count
-        if self.trip.booked_seats > 0:
-            old_booked = self.trip.booked_seats
-            self.trip.booked_seats -= 1
-            self.trip.save()
-            logger.info(
-                f"Updated trip {self.trip} booked seats: {old_booked} -> {self.trip.booked_seats}"
-            )
+        # Release any seat hold so the seat can be booked again
+        if self.seat_id:
+            SeatReservation.objects.filter(trip=self.trip, seat=self.seat).delete()
+
+        # Only confirmed bookings were counted in booked_seats
+        if was_confirmed:
+            from trips.models import Trip
+            Trip.objects.filter(pk=self.trip_id, booked_seats__gt=0).update(
+                booked_seats=F("booked_seats") - 1)
+            self.trip.refresh_from_db(fields=["booked_seats"])
+            logger.info(f"Updated trip {self.trip} booked seats -> {self.trip.booked_seats}")
 
         # Create cancellation record
         BookingCancellation.objects.create(

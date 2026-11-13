@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bus_app/theme.dart';
 import 'services/auth_service.dart';
 import 'register_screen.dart';
 import 'main.dart';
@@ -43,9 +44,9 @@ class _SignInScreenState extends State<SignInScreen> {
             const SnackBar(content: Text('Login successful!')),
           );
 
-          Navigator.pushReplacement(
-            context,
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const DefaultPage()),
+            (_) => false,
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +68,6 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Consistent background color
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0), // Increased padding
@@ -77,7 +77,7 @@ class _SignInScreenState extends State<SignInScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // App Logo or Icon (Optional, placeholder for now)
-              Icon(Icons.directions_bus, size: 80, color: Colors.blue.shade900),
+              Icon(Icons.directions_bus, size: 80, color: context.brand),
               const SizedBox(height: 24),
 
               Text(
@@ -85,7 +85,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900, // Matching app bar color
+                  color: context.brand,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -111,10 +111,9 @@ class _SignInScreenState extends State<SignInScreen> {
                           borderSide: BorderSide.none, // Remove default border
                         ),
                         filled: true,
-                        fillColor:
-                            Colors.grey.shade100, // Light grey background
+                        fillColor: context.fieldFill,
                         prefixIcon:
-                            Icon(Icons.person, color: Colors.blue.shade700),
+                            Icon(Icons.person, color: context.brand),
                         contentPadding: const EdgeInsets.symmetric(
                             vertical: 16, horizontal: 16),
                       ),
@@ -140,15 +139,15 @@ class _SignInScreenState extends State<SignInScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
+                        fillColor: context.fieldFill,
                         prefixIcon:
-                            Icon(Icons.lock, color: Colors.blue.shade700),
+                            Icon(Icons.lock, color: context.brand),
                         suffixIcon: IconButton(
                           icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Colors.blue.shade700),
+                              color: context.brand),
                           onPressed: () {
                             setState(() {
                               _obscurePassword = !_obscurePassword;
@@ -194,12 +193,25 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              _emailController.text = 'demo@bookutu.com';
+                              _passwordController.text = 'Demo@1234';
+                              _login();
+                            },
+                      icon: Icon(Icons.play_circle_outline, color: context.brand),
+                      label: Text('Use demo account',
+                          style: TextStyle(color: context.brand)),
+                    ),
                     const SizedBox(height: 24), // Adjusted spacing
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text("Don't have an account? ",
-                            style: TextStyle(color: Colors.grey.shade700)),
+                            style: TextStyle(color: context.muted)),
                         GestureDetector(
                           onTap: () {
                             Navigator.pushReplacement(
@@ -213,7 +225,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             "Register",
                             style: TextStyle(
                               color:
-                                  Colors.blue.shade700, // Consistent blue color
+                                  context.brand,
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline,
                             ),

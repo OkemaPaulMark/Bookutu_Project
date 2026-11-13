@@ -74,13 +74,13 @@ class SystemSettingsForm(forms.ModelForm):
     
     class Meta:
         model = SystemSettings
+        # Only the fields shown on admin/settings.html; others keep their values.
         fields = [
-            'platform_name', 'platform_tagline', 'platform_description',
+            'platform_name', 'platform_tagline',
             'support_email', 'support_phone',
             'allow_company_registration', 'require_company_verification',
             'default_commission_rate', 'currency',
-            'maintenance_mode', 'send_booking_confirmations', 'send_payment_notifications',
-            'terms_of_service', 'privacy_policy'
+            'maintenance_mode', 'send_booking_confirmations',
         ]
         widgets = {
             'platform_name': forms.TextInput(attrs={

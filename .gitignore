@@ -97,3 +97,8 @@ venv/
 # Export artifacts (not needed in repo)
 export/
 export_artifacts.zip
+
+# Bookutu backend: local-only artefacts
+bookutu-backendz/db_before_demo_seed.sqlite3
+bookutu-backendz/staticfiles/
+bookutu-backendz/mobile_web/

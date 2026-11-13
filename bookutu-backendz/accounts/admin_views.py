@@ -393,15 +393,8 @@ def admin_settings(request):
         return redirect('company:dashboard')
     
     # Get or create system settings
-    settings, created = SystemSettings.objects.get_or_create(
-        defaults={
-            'platform_name': 'Bookutu',
-            'platform_email': 'admin@bookutu.com',
-            'platform_phone': '+256 700 000000',
-            'currency': 'UGX',
-            'timezone': 'Africa/Kampala',
-        }
-    )
+    # Single settings row; model defaults fill in everything else
+    settings = SystemSettings.objects.first() or SystemSettings.objects.create()
     
     if request.method == 'POST':
         form = SystemSettingsForm(request.POST, instance=settings)

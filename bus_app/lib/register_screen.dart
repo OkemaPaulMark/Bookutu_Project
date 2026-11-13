@@ -1,5 +1,6 @@
 import 'package:bus_app/main.dart';
 import 'package:flutter/material.dart';
+import 'package:bus_app/theme.dart';
 import 'services/auth_service.dart';
 import 'login_screen.dart'; // Import login_screen.dart for navigation
 
@@ -55,9 +56,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           SnackBar(content: Text(result['message'])),
         );
 
-        Navigator.pushReplacement(
-          context,
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const DefaultPage()),
+          (_) => false,
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -70,7 +71,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Consistent background color
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0), // Increased padding
@@ -80,7 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // App Logo or Icon (Optional, placeholder for now)
-              Icon(Icons.directions_bus, size: 80, color: Colors.blue.shade900),
+              Icon(Icons.directions_bus, size: 80, color: context.brand),
               const SizedBox(height: 24),
 
               Text(
@@ -88,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900, // Matching app bar color
+                  color: context.brand,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -112,8 +112,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
-                        prefixIcon: Icon(Icons.person, color: Colors.blue.shade700),
+                        fillColor: context.fieldFill,
+                        prefixIcon: Icon(Icons.person, color: context.brand),
                         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                       ),
                       validator: (val) => val == null || val.isEmpty ? 'Enter first name' : null,
@@ -129,8 +129,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
-                        prefixIcon: Icon(Icons.person_outline, color: Colors.blue.shade700),
+                        fillColor: context.fieldFill,
+                        prefixIcon: Icon(Icons.person_outline, color: context.brand),
                         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                       ),
                       validator: (val) => val == null || val.isEmpty ? 'Enter last name' : null,
@@ -146,8 +146,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
-                        prefixIcon: Icon(Icons.phone, color: Colors.blue.shade700),
+                        fillColor: context.fieldFill,
+                        prefixIcon: Icon(Icons.phone, color: context.brand),
                         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                       ),
                       validator: (val) => val == null || val.isEmpty ? 'Enter phone number' : null,
@@ -163,9 +163,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
+                        fillColor: context.fieldFill,
                         prefixIcon:
-                            Icon(Icons.email, color: Colors.blue.shade700),
+                            Icon(Icons.email, color: context.brand),
                         contentPadding: const EdgeInsets.symmetric(
                             vertical: 16, horizontal: 16),
                       ),
@@ -185,15 +185,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
+                        fillColor: context.fieldFill,
                         prefixIcon:
-                            Icon(Icons.lock, color: Colors.blue.shade700),
+                            Icon(Icons.lock, color: context.brand),
                         suffixIcon: IconButton(
                           icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Colors.blue.shade700),
+                              color: context.brand),
                           onPressed: () {
                             setState(() {
                               _obscurePassword = !_obscurePassword;
@@ -219,15 +219,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey.shade100,
+                        fillColor: context.fieldFill,
                         prefixIcon:
-                            Icon(Icons.lock_reset, color: Colors.blue.shade700),
+                            Icon(Icons.lock_reset, color: context.brand),
                         suffixIcon: IconButton(
                           icon: Icon(
                               _obscureConfirmPassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Colors.blue.shade700),
+                              color: context.brand),
                           onPressed: () {
                             setState(() {
                               _obscureConfirmPassword =
@@ -274,7 +274,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text("Already have an account? ",
-                            style: TextStyle(color: Colors.grey.shade700)),
+                            style: TextStyle(color: context.muted)),
                         GestureDetector(
                           onTap: () {
                             Navigator.pushReplacement(
@@ -287,7 +287,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Text(
                             "Login",
                             style: TextStyle(
-                              color: Colors.blue.shade700,
+                              color: context.brand,
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline,
                             ),

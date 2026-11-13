@@ -1,4 +1,6 @@
+import 'package:bus_app/config.dart';
 import 'package:flutter/material.dart';
+import 'package:bus_app/theme.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -13,6 +15,7 @@ import 'package:bus_app/edit_profile_page.dart';
 import 'package:bus_app/login_screen.dart';
 import 'package:bus_app/notification.dart';
 import 'package:bus_app/services/auth_service.dart';
+import 'package:bus_app/services/api_service.dart';
 import 'package:bus_app/settings_page.dart';
 import 'package:bus_app/bookings_page.dart';
 
@@ -49,6 +52,9 @@ class Advert {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   String username = '';
+  String fullName = '';
+  String email = '';
+  int notificationCount = 0;
   final AuthService _authService = AuthService();
   List<Advert> adverts = [];
 
@@ -78,7 +84,7 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         image: DecorationImage(
-          image: AssetImage('images/bus3.jpeg'),
+          image: AssetImage('images/bus.jpg'),
           fit: BoxFit.cover,
         ),
       ),
@@ -90,18 +96,35 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _loadUsername();
     fetchAdverts();
+    _loadNotificationCount();
   }
 
   Future<void> _loadUsername() async {
     final prefs = await SharedPreferences.getInstance();
+    final user = await _authService.getUserData() ?? {};
+    if (!mounted) return;
     setState(() {
       username = prefs.getString('username') ?? '';
+      fullName = '${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'.trim();
+      email = (user['email'] ?? '').toString();
     });
+  }
+
+  Future<void> _loadNotificationCount() async {
+    try {
+      final items = await ApiService.notifications();
+      if (mounted) setState(() => notificationCount = items.length);
+    } catch (_) {}
+  }
+
+  String get initials {
+    final parts = fullName.split(' ').where((p) => p.isNotEmpty).toList();
+    return parts.isEmpty ? '?' : parts.map((p) => p[0]).take(2).join().toUpperCase();
   }
     Future<void> fetchAdverts() async {
       try {
         final response = await http.get(
-          Uri.parse('http://192.168.100.19:8000/api/adverts/?all=true'), // use all=true
+          Uri.parse('$apiHost/api/adverts/?all=true'),
         );
 
         if (response.statusCode == 200) {
@@ -122,7 +145,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D47A1),
         leadingWidth: 200,
         leading: Builder(
           builder: (BuildContext context) {
@@ -133,14 +155,17 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 children: [
                   const SizedBox(width: 10),
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 18,
-                    backgroundImage: AssetImage('images/IMG_E5781.JPG'),
+                    backgroundColor: Colors.white,
+                    child: Text(initials,
+                        style: const TextStyle(
+                            color: brandBlue, fontWeight: FontWeight.bold, fontSize: 14)),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Hi, $username',
+                      username.isEmpty ? 'Hi there' : 'Hi, $username',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -169,6 +194,7 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.all(12.0),
                   child: Icon(Icons.notifications, color: Colors.white),
                 ),
+                if (notificationCount > 0)
                 Positioned(
                   right: 10,
                   top: 6,
@@ -182,8 +208,8 @@ class _HomePageState extends State<HomePage> {
                       minWidth: 10,
                       minHeight: 10,
                     ),
-                    child: const Text(
-                      '2',
+                    child: Text(
+                      '$notificationCount',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 8,
@@ -197,7 +223,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      backgroundColor: Colors.white,
       drawer: _buildDrawer(),
       body: ListView.builder(
         padding: const EdgeInsets.only(bottom: 20),
@@ -233,7 +258,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             accountName: Text(
-              'Okema Paul',
+              fullName.isEmpty ? 'Bookutu traveller' : fullName,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -241,14 +266,14 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             accountEmail: Text(
-              'okema@gmail.com',
+              email,
               style: TextStyle(color: Colors.white.withOpacity(0.9)),
             ),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               child: GestureDetector(
                 child: Text(
-                  'OP',
+                  initials,
                   style: TextStyle(
                     fontSize: 24,
                     color: Colors.blue.shade900,
@@ -265,7 +290,14 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          _drawerItem(Icons.person, 'Profile', () => Navigator.pop(context)),
+          _drawerItem(Icons.person, 'Profile', () async {
+            Navigator.pop(context);
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EditProfilePage()),
+            );
+            _loadUsername();
+          }),
           _drawerItem(Icons.book, 'My Bookings', () {
             Navigator.pop(context);
             Navigator.push(
@@ -286,8 +318,9 @@ class _HomePageState extends State<HomePage> {
             leading: const Icon(Icons.dark_mode),
             title: const Text('Dark Mode'),
             trailing: Switch(
-              value: true,
-              onChanged: (value) {},
+              value: context.isDark,
+              onChanged: (value) =>
+                  ThemeController.set(value ? ThemeMode.dark : ThemeMode.light),
             ),
           ),
           const Divider(),
@@ -300,9 +333,9 @@ class _HomePageState extends State<HomePage> {
                 SnackBar(content: Text(result['message'])),
               );
               if (result['success']) {
-                Navigator.pushReplacement(
-                  context,
+                Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const SignInScreen()),
+                  (_) => false,
                 );
               }
             },
@@ -370,7 +403,7 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900),
+                    color: context.brand),
               ),
             ],
           ),
@@ -403,7 +436,7 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue.shade900),
+                color: context.brand),
           ),
         ],
       ),
@@ -450,7 +483,7 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
+                        color: context.brand,
                       ),
                     ),
                     const SizedBox(height: 4),

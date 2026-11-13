@@ -1,4 +1,5 @@
 from rest_framework import generics, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -200,10 +201,17 @@ class MobileBookingCreateView(generics.CreateAPIView):
         )
 
 
+class MobileBookingPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = "page_size"
+    max_page_size = 200
+
+
 class MobileBookingListView(generics.ListAPIView):
     """List user's bookings for mobile app"""
 
     serializer_class = MobileBookingSerializer
+    pagination_class = MobileBookingPagination
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -341,3 +349,218 @@ def popular_routes(request):
         )
 
     return Response({"popular_routes": routes_data})
+
+
+# ---------------------------------------------------------------------------
+# Endpoints used by the Flutter app's booking, payment, map and notification
+# screens.
+# ---------------------------------------------------------------------------
+from django.db import transaction
+from rest_framework import serializers as drf_serializers
+from payments.models import Payment
+from notifications.models import Announcement
+from .geo import route_path, interpolate, coords_for
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_bookings(request):
+    """Book one or more seats on a trip in a single atomic request.
+
+    Body: {"trip": <id>, "seat_numbers": ["1A", "1B"], "passenger_name"?, "passenger_phone"?}
+    """
+    seat_numbers = request.data.get("seat_numbers") or []
+    if isinstance(seat_numbers, str):
+        seat_numbers = [seat_numbers]
+    if not seat_numbers:
+        return Response({"error": "Select at least one seat"}, status=status.HTTP_400_BAD_REQUEST)
+
+    bookings = []
+    try:
+        with transaction.atomic():
+            for number in seat_numbers:
+                ser = MobileBookingCreateSerializer(
+                    data={
+                        "trip": request.data.get("trip"),
+                        "seat_number": number,
+                        "passenger_name": request.data.get("passenger_name", ""),
+                        "passenger_phone": request.data.get("passenger_phone", ""),
+                    },
+                    context={"request": request},
+                )
+                ser.is_valid(raise_exception=True)
+                bookings.append(ser.save())
+    except drf_serializers.ValidationError as e:
+        detail = e.detail
+        if isinstance(detail, dict):
+            detail = detail.get("non_field_errors", detail)
+        if isinstance(detail, list) and detail:
+            detail = detail[0]
+        return Response({"error": str(detail)}, status=status.HTTP_400_BAD_REQUEST)
+
+    data = MobileBookingSerializer(bookings, many=True, context={"request": request}).data
+    return Response(
+        {"message": f"{len(bookings)} seat(s) reserved", "bookings": data},
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def pay_bookings(request):
+    """Pay for pending bookings and confirm them.
+
+    This is a sandbox payment: no real money moves. It records a COMPLETED
+    Payment and confirms the booking, so the rest of the system (company
+    dashboard, manifests, seat availability) behaves as after a real payment.
+
+    Body: {"booking_ids": [..], "method": "MTN"|"AIRTEL"|"CARD", "phone": "07..."}
+    """
+    ids = request.data.get("booking_ids") or []
+    method = (request.data.get("method") or "MTN").upper()
+    phone = request.data.get("phone") or getattr(request.user, "phone_number", "")
+    bookings = list(
+        Booking.objects.filter(id__in=ids, passenger=request.user, status="PENDING")
+        .select_related("trip", "company")
+    )
+    if not bookings:
+        return Response({"error": "No pending bookings to pay for"}, status=status.HTTP_400_BAD_REQUEST)
+
+    is_card = method == "CARD"
+    with transaction.atomic():
+        for b in bookings:
+            Payment.objects.create(
+                booking=b,
+                company=b.company,
+                user=request.user,
+                amount=b.total_amount,
+                payment_method="CARD" if is_card else "MOBILE_MONEY",
+                status="COMPLETED",
+                mobile_money_number="" if is_card else phone,
+                mobile_money_provider="" if is_card else ("Airtel" if method == "AIRTEL" else "MTN"),
+                gateway_transaction_id=f"SANDBOX-{b.booking_reference}",
+                gateway_response={"sandbox": True},
+                completed_at=timezone.now(),
+            )
+            b.confirm_booking()
+
+    refreshed = Booking.objects.filter(id__in=[b.id for b in bookings])
+    return Response({
+        "message": "Payment successful",
+        "bookings": MobileBookingSerializer(refreshed, many=True, context={"request": request}).data,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_profile(request):
+    return Response({"profile": MobileUserSerializer(request.user, context={"request": request}).data})
+
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+def edit_profile(request):
+    user = request.user
+    for field in ("first_name", "last_name", "phone_number"):
+        if field in request.data:
+            setattr(user, field, request.data[field])
+    user.save()
+    return Response({
+        "message": "Profile updated successfully",
+        "profile": MobileUserSerializer(user, context={"request": request}).data,
+    })
+
+
+def _trip_progress(trip, now):
+    dep = timezone.make_aware(timezone.datetime.combine(trip.departure_date, trip.departure_time))
+    arr = timezone.make_aware(timezone.datetime.combine(trip.departure_date, trip.arrival_time))
+    total = (arr - dep).total_seconds() or 1
+    return (now - dep).total_seconds() / total, dep, arr
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def map_data(request):
+    """Terminals, active routes and live bus positions for the map screen.
+
+    Bus positions are estimated from each trip's schedule along its route
+    (no GPS hardware is wired in yet).
+    """
+    now = timezone.localtime()
+    today = now.date()
+
+    trips = (
+        Trip.objects.filter(departure_date=today)
+        .exclude(status__in=["CANCELLED", "COMPLETED"])
+        .select_related("route", "bus", "company")
+    )
+
+    buses, routes, terminals = [], {}, {}
+    for trip in trips:
+        path = route_path(trip.route)
+        if len(path) < 2:
+            continue
+        progress, dep, arr = _trip_progress(trip, now)
+        routes.setdefault(trip.route_id, {
+            "id": trip.route_id,
+            "name": f"{trip.route.origin_city} → {trip.route.destination_city}",
+            "points": [{"lat": p[0], "lng": p[1]} for p in path],
+        })
+        for city, terminal in ((trip.route.origin_city, trip.route.origin_terminal),
+                               (trip.route.destination_city, trip.route.destination_terminal)):
+            c = coords_for(city)
+            if c:
+                terminals.setdefault(city.lower(), {"city": city, "name": terminal or city,
+                                                    "lat": c[0], "lng": c[1]})
+        if progress > 1:
+            continue  # already arrived
+        if progress < 0:
+            state, pos = "WAITING", path[0]
+        else:
+            state, pos = "IN_TRANSIT", interpolate(path, progress)
+        buses.append({
+            "trip_id": trip.id,
+            "company": trip.company.name,
+            "plate": trip.bus.license_plate,
+            "route": f"{trip.route.origin_city} → {trip.route.destination_city}",
+            "state": state,
+            "progress": round(max(progress, 0) * 100),
+            "departure_time": trip.departure_time.strftime("%H:%M"),
+            "arrival_time": trip.arrival_time.strftime("%H:%M"),
+            "lat": pos[0],
+            "lng": pos[1],
+        })
+
+    return Response({
+        "generated_at": now.isoformat(),
+        "buses": buses,
+        "routes": list(routes.values()),
+        "terminals": list(terminals.values()),
+    })
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def notifications_feed(request):
+    """Announcements for passengers, plus booking updates when logged in."""
+    items = []
+    for a in Announcement.objects.filter(is_active=True, target_audience__in=["all", "passengers"]).filter(
+        Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+    )[:20]:
+        items.append({"type": "announcement", "title": a.title, "message": a.message,
+                      "priority": a.priority, "created_at": a.created_at})
+    if request.user.is_authenticated:
+        for b in Booking.objects.filter(passenger=request.user).select_related(
+                "trip__route").order_by("-updated_at")[:10]:
+            r = b.trip.route
+            items.append({
+                "type": "booking",
+                "title": f"Booking {b.get_status_display().lower()}",
+                "message": f"{r.origin_city} → {r.destination_city} on {b.trip.departure_date:%d %b} "
+                           f"at {b.trip.departure_time:%H:%M}, seat {b.seat.seat_number if b.seat else '-'} "
+                           f"({b.booking_reference})",
+                "priority": "medium",
+                "created_at": b.updated_at,
+            })
+    items.sort(key=lambda i: i["created_at"], reverse=True)
+    return Response({"notifications": items})

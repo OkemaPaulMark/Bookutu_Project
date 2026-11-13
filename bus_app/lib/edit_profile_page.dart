@@ -1,4 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:bus_app/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'services/api_service.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -8,139 +14,120 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-
-  // Placeholder for profile image, will be updated when image picker is integrated
-  String? _profileImagePath;
+  final _first = TextEditingController();
+  final _last = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  bool loading = true;
+  bool saving = false;
+  String? error;
 
   @override
   void initState() {
     super.initState();
-    // Simulate auto-filled data
-    _nameController.text = 'John Doe';
-    _emailController.text = 'john.doe@example.com';
-    _phoneController.text = '+256 777 123456';
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final p = await ApiService.profile();
+      _first.text = p['first_name'] ?? '';
+      _last.text = p['last_name'] ?? '';
+      _email.text = p['email'] ?? '';
+      _phone.text = p['phone_number'] ?? '';
+    } catch (e) {
+      error = e.toString();
+    }
+    if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> _save() async {
+    setState(() => saving = true);
+    try {
+      final p = await ApiService.updateProfile({
+        'first_name': _first.text.trim(),
+        'last_name': _last.text.trim(),
+        'phone_number': _phone.text.trim(),
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('username', p['first_name'] ?? '');
+      await prefs.setString('user_data', jsonEncode(p));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved!')));
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
+    for (final c in [_first, _last, _email, _phone]) {
+      c.dispose();
+    }
     super.dispose();
-  }
-
-  // Placeholder for image picking logic
-  void _pickImage() {
-    // This is where image picker library would be used (e.g., image_picker package)
-    // For now, we'll just show a snackbar.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Image picker functionality coming soon!')),
-    );
-    // setState(() {
-    //   _profileImagePath = 'path/to/new/image.jpg'; // Update with actual path
-    // });
   }
 
   @override
   Widget build(BuildContext context) {
+    final initials = '${_first.text.isNotEmpty ? _first.text[0] : ''}'
+            '${_last.text.isNotEmpty ? _last.text[0] : ''}'
+        .toUpperCase();
     return Scaffold(
       appBar: AppBar(
-        title:
-            const Text('Edit Profile', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue.shade900,
+        title: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.center, // Center the profile picture
-            children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.blue.shade100,
-                      backgroundImage: _profileImagePath != null
-                          ? AssetImage(
-                              _profileImagePath!) // Use AssetImage for now
-                          : null,
-                      child: _profileImagePath == null
-                          ? Icon(Icons.person,
-                              size: 60,
-                              color:
-                                  Colors.blue.shade800) // Default person icon
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.blue.shade800,
-                        child: const Icon(Icons.camera_alt,
-                            size: 20, color: Colors.white),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(child: Text(error!))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: context.brand.withOpacity(0.2),
+                        child: Text(initials.isEmpty ? '?' : initials,
+                            style: TextStyle(fontSize: 32, color: context.brand)),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Implement save functionality here
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile saved!')));
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade900,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                      const SizedBox(height: 24),
+                      _field(_first, 'First name'),
+                      _field(_last, 'Last name'),
+                      _field(_email, 'Email', enabled: false),
+                      _field(_phone, 'Phone number', keyboard: TextInputType.phone),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: saving ? null : _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade900,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: Text(saving ? 'Saving…' : 'Save Changes',
+                              style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: const Text('Save Changes',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
-              ),
-            ],
-          ),
-        ),
+    );
+  }
+
+  Widget _field(TextEditingController c, String label,
+      {bool enabled = true, TextInputType? keyboard}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: c,
+        enabled: enabled,
+        keyboardType: keyboard,
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
       ),
     );
   }

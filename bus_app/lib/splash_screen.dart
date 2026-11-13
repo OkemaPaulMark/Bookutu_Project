@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'main.dart'; // because AuthWrapper is inside main.dart
+import 'main.dart';
+import 'login_screen.dart';
+import 'services/auth_service.dart';
+import 'services/api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,12 +16,33 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DefaultPage()),
-      );
-    });
+    _route();
+  }
+
+  Future<void> _route() async {
+    final results = await Future.wait([
+      AuthService().isLoggedIn(),
+      Future.delayed(const Duration(seconds: 2), () => true),
+    ]);
+    if (!mounted) return;
+    var loggedIn = results[0];
+    if (loggedIn) {
+      // Make sure the saved session is still valid (refreshes it if expired).
+      try {
+        await ApiService.profile();
+      } on AuthRequiredException {
+        loggedIn = false;
+      } catch (_) {
+        // Offline/server down: let the user in; screens show their own errors.
+      }
+      if (!mounted) return;
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => loggedIn ? const DefaultPage() : const SignInScreen(),
+      ),
+    );
   }
 
   @override

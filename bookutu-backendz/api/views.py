@@ -97,13 +97,25 @@ class LogoutView(APIView):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_trips(request):
-    now = timezone.now().date()
-    trips = Trip.objects.filter(
-        status="SCHEDULED",
-        departure_date__gte=now
+    """Upcoming bookable trips. Optional filters: ?origin=&destination=&date=YYYY-MM-DD"""
+    from django.db.models import Q
+    now = timezone.localtime()
+    trips = Trip.objects.filter(status="SCHEDULED").filter(
+        Q(departure_date__gt=now.date()) |
+        Q(departure_date=now.date(), departure_time__gt=now.time())
     ).select_related("route", "bus", "company").order_by("departure_date", "departure_time")
 
-    serializer = TripPublicSerializer(trips, many=True)
+    origin = request.GET.get("origin")
+    destination = request.GET.get("destination")
+    date = request.GET.get("date")
+    if origin:
+        trips = trips.filter(route__origin_city__icontains=origin)
+    if destination:
+        trips = trips.filter(route__destination_city__icontains=destination)
+    if date:
+        trips = trips.filter(departure_date=date)
+
+    serializer = TripPublicSerializer(trips, many=True, context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @csrf_exempt
@@ -116,6 +128,12 @@ def add_trip(request):
     bus = Bus.objects.get(pk=data['bus'])
     company = bus.company
     data['company'] = company.id
+
+    # Handle bus image upload if provided
+    if 'bus_image' in request.FILES:
+        # Update the bus image
+        bus.image = request.FILES['bus_image']
+        bus.save()
 
     serializer = TripSerializer(data=data)
     if serializer.is_valid():

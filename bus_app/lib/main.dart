@@ -1,5 +1,6 @@
-// import 'package:bus_app/splash_screen.dart';
+import 'package:bus_app/splash_screen.dart';
 import 'package:flutter/material.dart';
+import 'theme.dart';
 // Removed provider import
 // Removed ThemeProvider import
 import 'home_page.dart';
@@ -8,7 +9,8 @@ import 'location_page.dart';
 import 'settings_page.dart';
 
 void main() async {
-  // Removed WidgetsFlutterBinding.ensureInitialized() and ChangeNotifierProvider
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeController.load();
   runApp(const MyApp());
 }
 
@@ -17,11 +19,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Bookutu',
-      // Removed themeMode, theme, and darkTheme
-      home: DefaultPage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.mode,
+      builder: (context, mode, _) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Bookutu',
+        theme: buildTheme(Brightness.light),
+        darkTheme: buildTheme(Brightness.dark),
+        themeMode: mode,
+        home: const SplashScreen(),
+      ),
     );
   }
 }
@@ -56,9 +63,6 @@ class _DefaultPageState extends State<DefaultPage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: Colors.white, // Background color of the navigation bar
-        selectedItemColor: Colors.blue.shade900, // Color of selected item
-        unselectedItemColor: Colors.grey, // Color of unselected items
         selectedLabelStyle:
             TextStyle(fontWeight: FontWeight.bold), // Selected label style
         unselectedLabelStyle:

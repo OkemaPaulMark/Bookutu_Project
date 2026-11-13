@@ -13,6 +13,7 @@ python-decouple==3.8
 
 # Task queue
 celery==5.3.4
+kombu==5.5.4  # newer kombu requires redis-py>=6.1
 redis==5.0.1
 
 # Image processing
@@ -20,5 +21,9 @@ Pillow==10.0.1
 
 # HTTP requests
 requests==2.32.3
-pkg-resources
+setuptools<81  # rest_framework_simplejwt imports pkg_resources
 
+gunicorn==23.0.0
+whitenoise==6.7.0
+dj-database-url==2.2.0
+psycopg[binary]==3.2.3

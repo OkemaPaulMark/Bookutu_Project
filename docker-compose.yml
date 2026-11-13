@@ -1,0 +1,53 @@
+# Full Bookutu stack, mirroring the Railway production services.
+#   docker compose up --build      ->  web app: http://localhost:8080
+#                                       API/dashboard: http://localhost:8001
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bookutu
+      POSTGRES_USER: bookutu
+      POSTGRES_PASSWORD: bookutu
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookutu"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  backend:
+    build: ./bookutu-backendz
+    environment: &backend-env
+      DATABASE_URL: postgres://bookutu:bookutu@postgres:5432/bookutu
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: local-compose-not-secret
+      DEBUG: "False"
+      SERVE_MEDIA: "True"
+      MEDIA_ROOT: /data/media
+      PORT: "8000"
+    volumes: [media:/data]
+    ports: ["8001:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
+
+  worker:
+    build: ./bookutu-backendz
+    environment:
+      <<: *backend-env
+      SERVICE_ROLE: worker
+    depends_on: [backend]
+
+  web:
+    build: ./bus_app
+    environment:
+      PORT: "8080"
+      BACKEND_URL: http://backend:8000
+    ports: ["8080:8080"]
+    depends_on: [backend]
+
+volumes:
+  pgdata:
+  media:

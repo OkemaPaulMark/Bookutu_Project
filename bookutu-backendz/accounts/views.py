@@ -86,10 +86,15 @@ def web_password_reset(request):
                     expires_at=expires_at
                 )
                 
-                messages.success(request, 'Password reset email sent. Please check your inbox.')
+                # Email delivery isn't configured yet, so don't claim an email was sent.
+                messages.success(request, 'Reset request received. A Bookutu administrator will '
+                                          'contact you at this email to reset your password.')
                 return redirect('/accounts/login/')
             except User.DoesNotExist:
-                messages.error(request, 'No account found with that email address.')
+                # Same response either way, so the form can't be used to discover accounts.
+                messages.success(request, 'Reset request received. A Bookutu administrator will '
+                                          'contact you at this email to reset your password.')
+                return redirect('/accounts/login/')
         else:
             messages.error(request, 'Please enter your email address.')
     

@@ -1,0 +1,156 @@
+# Bookutu CI/CD
+#
+#   Pull request -> master : test backend, check + build the Flutter app, build both Docker images
+#   Push to master         : all of the above, then deploy backend, worker and web to Railway
+#                            production and smoke-test the live URLs
+#
+# Required repository secret:  RAILWAY_TOKEN  (a Railway *project* token for the
+#                              Bookutu project's "production" environment)
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  FLUTTER_VERSION: "3.32.0"
+  WEB_URL: https://web-production-536a5adc.up.railway.app
+  BACKEND_URL: https://backend-production-d27fcdc5.up.railway.app
+
+jobs:
+  backend:
+    name: Backend tests (Postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bookutu-backendz
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bookutu
+          POSTGRES_USER: bookutu
+          POSTGRES_PASSWORD: bookutu
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bookutu" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://bookutu:bookutu@localhost:5432/bookutu
+      SECRET_KEY: ci-only-not-secret
+      DEBUG: "False"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: bookutu-backendz/requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Django system check
+        run: python manage.py check --fail-level ERROR
+      - name: No missing migrations
+        run: python manage.py makemigrations --check --dry-run
+      - name: Migrations apply cleanly to an empty Postgres
+        run: python manage.py migrate --noinput
+      - name: Demo seed runs
+        run: python manage.py seed_demo --days 2
+      - name: Tests
+        run: python manage.py test api.tests.test_current_api --verbosity 2
+
+  mobile:
+    name: Flutter analyze + web build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bus_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze (errors fail the build)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Build web
+        run: flutter build web --release
+
+  images:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: bookutu-backendz
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - name: Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: bus_app
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  deploy:
+    name: Deploy to production
+    needs: [backend, mobile, images]
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ env.WEB_URL }}
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deploy token is configured
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::RAILWAY_TOKEN secret is not set. Create a project token in Railway (Bookutu > Settings > Tokens, environment: production) and add it as a repository secret."
+            exit 1
+          fi
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      # Backend first: it runs database migrations on start-up.
+      - name: Deploy backend
+        run: railway up ./bookutu-backendz --path-as-root --service backend --ci --message "${{ github.sha }}"
+      - name: Deploy worker
+        run: railway up ./bookutu-backendz --path-as-root --service worker --ci --message "${{ github.sha }}"
+      - name: Deploy web
+        run: railway up ./bus_app --path-as-root --service web --ci --message "${{ github.sha }}"
+      - name: Smoke test live URLs
+        run: |
+          set -e
+          check() { # url, expected-substring
+            for i in $(seq 1 30); do
+              body=$(curl -fsS "$1" 2>/dev/null) && echo "$body" | grep -q "$2" && { echo "OK  $1"; return 0; }
+              sleep 10
+            done
+            echo "::error::Smoke test failed for $1"; return 1
+          }
+          check "$BACKEND_URL/health/" healthy
+          check "$WEB_URL/healthz" ok
+          check "$WEB_URL/api/auth/trips/" '"route_name"'
+          check "$BACKEND_URL/accounts/login/" Bookutu

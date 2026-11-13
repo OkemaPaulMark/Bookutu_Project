@@ -19,6 +19,7 @@
     <div class="bg-white rounded-xl shadow-sm p-6">
         <form method="POST" class="space-y-6">
             {% csrf_token %}
+            {% if form.non_field_errors %}<div class="mb-4 p-3 rounded bg-red-50 text-red-700 text-sm">{{ form.non_field_errors }}</div>{% endif %}
             
             <!-- Platform Information -->
             <div class="border-b pb-6">
@@ -35,22 +36,22 @@
                     </div>
                     
                     <div>
-                        <label for="{{ form.platform_email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-envelope mr-2"></i>Platform Email *
+                        <label for="{{ form.support_email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2"></i>Support Email *
                         </label>
-                        {{ form.platform_email }}
-                        {% if form.platform_email.errors %}
-                            <div class="text-red-600 text-sm mt-1">{{ form.platform_email.errors.0 }}</div>
+                        {{ form.support_email }}
+                        {% if form.support_email.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.support_email.errors.0 }}</div>
                         {% endif %}
                     </div>
                     
                     <div>
-                        <label for="{{ form.platform_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-phone mr-2"></i>Platform Phone *
+                        <label for="{{ form.support_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2"></i>Support Phone *
                         </label>
-                        {{ form.platform_phone }}
-                        {% if form.platform_phone.errors %}
-                            <div class="text-red-600 text-sm mt-1">{{ form.platform_phone.errors.0 }}</div>
+                        {{ form.support_phone }}
+                        {% if form.support_phone.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.support_phone.errors.0 }}</div>
                         {% endif %}
                     </div>
                     
@@ -66,12 +67,12 @@
                 </div>
                 
                 <div class="mt-6">
-                    <label for="{{ form.platform_address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-map-marker-alt mr-2"></i>Platform Address
+                    <label for="{{ form.platform_tagline.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-quote-left mr-2"></i>Platform Tagline
                     </label>
-                    {{ form.platform_address }}
-                    {% if form.platform_address.errors %}
-                        <div class="text-red-600 text-sm mt-1">{{ form.platform_address.errors.0 }}</div>
+                    {{ form.platform_tagline }}
+                    {% if form.platform_tagline.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.platform_tagline.errors.0 }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -113,13 +114,10 @@
                     </div>
                     
                     <div>
-                        <label for="{{ form.timezone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-clock mr-2"></i>Timezone
                         </label>
-                        {{ form.timezone }}
-                        {% if form.timezone.errors %}
-                            <div class="text-red-600 text-sm mt-1">{{ form.timezone.errors.0 }}</div>
-                        {% endif %}
+                        <p class="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">Africa/Kampala (EAT, UTC+3)</p>
                     </div>
                 </div>
             </div>
@@ -136,15 +134,11 @@
                     </div>
                     <p class="text-sm text-gray-500">Enable maintenance mode to temporarily disable the platform for updates.</p>
                     
-                    <div>
-                        <label for="{{ form.maintenance_message.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-message mr-2"></i>Maintenance Message
+                    <div class="flex items-center">
+                        {{ form.send_booking_confirmations }}
+                        <label for="{{ form.send_booking_confirmations.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                            Send booking confirmation messages to passengers
                         </label>
-                        {{ form.maintenance_message }}
-                        {% if form.maintenance_message.errors %}
-                            <div class="text-red-600 text-sm mt-1">{{ form.maintenance_message.errors.0 }}</div>
-                        {% endif %}
-                        <p class="text-sm text-gray-500 mt-1">Message to display to users during maintenance mode</p>
                     </div>
                 </div>
             </div>
@@ -172,11 +166,11 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Email</span>
-                        <span class="font-medium">{{ settings.platform_email }}</span>
+                        <span class="font-medium">{{ settings.support_email }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Phone</span>
-                        <span class="font-medium">{{ settings.platform_phone }}</span>
+                        <span class="font-medium">{{ settings.support_phone }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Currency</span>

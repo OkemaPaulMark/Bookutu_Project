@@ -197,7 +197,7 @@ class BusSeat(models.Model):
     bus = models.ForeignKey(Bus, on_delete=models.CASCADE, related_name="seats")
     seat_number = models.CharField(max_length=10)  # e.g., "1A", "12B"
     row_number = models.PositiveIntegerField()
-    seat_position = models.CharField(max_length=10)  # 'LEFT', 'CENTER', 'RIGHT'
+    seat_position = models.CharField(max_length=20)  # LEFT_WINDOW, LEFT_AISLE, RIGHT_AISLE, RIGHT_WINDOW
     seat_type = models.CharField(
         max_length=20, choices=SEAT_TYPE_CHOICES, default="REGULAR"
     )

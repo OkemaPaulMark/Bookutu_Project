@@ -1,9 +1,10 @@
+import 'package:bus_app/config.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  final String baseUrl = 'http://127.0.0.1:8001/api/auth'; // Updated to match Django server
+  final String baseUrl = '$apiHost/api/auth';
 
   Future<Map<String, dynamic>> registerUser({
     required String firstName,
@@ -41,6 +42,8 @@ class AuthService {
 
     final data = jsonDecode(response.body);
     if (response.statusCode == 201) {
+      // Sign the new user straight in so they can book immediately.
+      await loginUser(email: email, password: password);
       return {
         'success': true,
         'message': data['message'] ?? 'Registration successful',
@@ -85,6 +88,8 @@ class AuthService {
       await prefs.setString('access_token', data['access']);
       await prefs.setString('refresh_token', data['refresh']);
       await prefs.setString('user_data', jsonEncode(data['user']));
+      final first = (data['user']?['first_name'] ?? '').toString();
+      await prefs.setString('username', first.isNotEmpty ? first : email.split('@').first);
 
       return {
         'success': true,
@@ -111,6 +116,7 @@ class AuthService {
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
     await prefs.remove('user_data');
+    await prefs.remove('username');
 
     if (accessToken == null) {
       return {

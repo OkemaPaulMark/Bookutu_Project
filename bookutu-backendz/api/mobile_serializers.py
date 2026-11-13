@@ -30,8 +30,8 @@ class MobileUserSerializer(serializers.ModelSerializer):
             profile = obj.passenger_profile
             return {
                 "date_of_birth": profile.date_of_birth,
-                "emergency_contact": profile.emergency_contact,
-                "emergency_phone": profile.emergency_phone,
+                "emergency_contact": profile.emergency_contact_name,
+                "emergency_phone": profile.emergency_contact_phone,
                 "preferred_payment_method": getattr(
                     profile, "preferred_payment_method", None
                 ),
@@ -206,6 +206,10 @@ class MobileBookingCreateSerializer(serializers.Serializer):
         trip: Trip = validated_data["trip"]
         seat: BusSeat = validated_data["seat"]
 
+        # Clear reservations that no longer hold the seat (expired, or left over
+        # from a cancelled booking) -- availability was checked in validate().
+        SeatReservation.objects.filter(trip=trip, seat=seat).delete()
+
         # Attempt to reserve the seat to avoid race conditions
         try:
             SeatReservation.objects.create(trip=trip, seat=seat, user=user)
@@ -271,6 +275,8 @@ class MobileBookingSerializer(serializers.ModelSerializer):
             "id",
             "booking_reference",
             "status",
+            "passenger_name",
+            "passenger_phone",
             "trip_info",
             "seat_info",
             "total_amount",
@@ -287,6 +293,13 @@ class MobileBookingSerializer(serializers.ModelSerializer):
             "arrival_time": obj.trip.arrival_time,
             "departure_date": obj.trip.departure_date,
             "bus_type": obj.trip.bus.bus_type,
+            "bus_license_plate": obj.trip.bus.license_plate,
+            "trip_id": obj.trip.id,
+            "origin": obj.trip.route.origin_city,
+            "destination": obj.trip.route.destination_city,
+            "origin_terminal": obj.trip.route.origin_terminal,
+            "destination_terminal": obj.trip.route.destination_terminal,
+            "trip_status": obj.trip.status,
         }
 
     def get_seat_info(self, obj):

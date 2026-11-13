@@ -9,7 +9,9 @@ User = get_user_model()
 
 class MobileRegisterSerializer(serializers.ModelSerializer):
     """
-    Serializer for mobile app user registration
+    Serializer for mobile app user registration.
+    Matches what the Flutter app sends: names, email, phone, password(s),
+    and optionally date_of_birth / gender.
     """
     confirm_password = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -17,13 +19,19 @@ class MobileRegisterSerializer(serializers.ModelSerializer):
         required=True, validators=[UniqueValidator(queryset=User.objects.all())]
     )
     username = serializers.CharField(
-        required=True, validators=[UniqueValidator(queryset=User.objects.all())]
+        required=False, allow_blank=True, validators=[UniqueValidator(queryset=User.objects.all())]
     )
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True, write_only=True)
+    gender = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = User
         fields = [
-            "username", "email", "password", "confirm_password"
+            "username", "email", "password", "confirm_password", "first_name",
+            "last_name", "phone_number", "date_of_birth", "gender",
         ]
 
     def validate(self, attrs):
@@ -33,13 +41,20 @@ class MobileRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop("confirm_password")
+        dob = validated_data.pop("date_of_birth", None)
+        gender = (validated_data.pop("gender", "") or "").upper()[:1]
+        if not validated_data.get("username"):
+            validated_data.pop("username", None)
 
-        # Create user with passenger user type
         validated_data['user_type'] = 'PASSENGER'
         user = User.objects.create_user(**validated_data)
 
-        # Create passenger profile (only if it doesn't exist)
-        PassengerProfile.objects.get_or_create(user=user)
+        profile, _ = PassengerProfile.objects.get_or_create(user=user)
+        if dob:
+            profile.date_of_birth = dob
+        if gender in ("M", "F", "O"):
+            profile.gender = gender
+        profile.save()
 
         return user
 
@@ -69,40 +84,40 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class MobileLoginSerializer(serializers.Serializer):
     """
-    Custom JWT token serializer for mobile app login
+    Custom JWT token serializer for mobile app login.
+    Accepts either "email" (what the Flutter app sends) or "username".
     """
-    username = serializers.CharField(required=True)
+    email = serializers.CharField(required=False)
+    username = serializers.CharField(required=False)
     password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
-        username = attrs.get("username")
+        identifier = (attrs.get("email") or attrs.get("username") or "").strip()
         password = attrs.get("password")
 
-        if username and password:
-            # Try to authenticate with the provided username (could be username or email)
-            user = authenticate(username=username, password=password)
-            if not user:
-                raise serializers.ValidationError({"non_field_errors": ["Invalid username or password."]})
-            if not user.is_active:
-                raise serializers.ValidationError({"non_field_errors": ["User account is disabled."]})
-        else:
-            raise serializers.ValidationError({"non_field_errors": ["Username and password are required."]})
+        if not identifier or not password:
+            raise serializers.ValidationError({"non_field_errors": ["Email and password are required."]})
 
-        # Get tokens
+        user = authenticate(username=identifier, password=password)
+        if not user:
+            raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
+        if not user.is_active:
+            raise serializers.ValidationError({"non_field_errors": ["User account is disabled."]})
+
         from rest_framework_simplejwt.tokens import RefreshToken
         refresh_token = RefreshToken.for_user(user)
 
-        # Return the token data
         data = {
             'refresh': str(refresh_token),
             'access': str(refresh_token.access_token),
         }
-
-        # Add user info to response
         data["user"] = {
             "id": user.id,
             "username": user.username,
             "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
             "user_type": user.user_type,
             "is_verified": user.is_verified
         }
